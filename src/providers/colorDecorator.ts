@@ -50,10 +50,10 @@ export class ColorDecorator {
           colorGroups.set(color, []);
         }
 
-        // 对于背景样式，只装饰 token 名称部分；其他样式装饰整个 var() 表达式
-        const rangeToDecorate =
-          style === 'background' ? match.tokenRange : match.range;
-        colorGroups.get(color)!.push(rangeToDecorate);
+        // 所有样式都只装饰 token 名称部分
+        // 背景和下划线：高亮 token 名称
+        // 方形和圆形：色块显示在 token 名称的前面/后面，即 var(色块--ant-xxx) 或 var(--ant-xxx色块)
+        colorGroups.get(color)!.push(match.tokenRange);
       }
     }
 
@@ -154,16 +154,14 @@ export class ColorDecorator {
     position: string,
     size: string
   ): vscode.TextEditorDecorationType {
-    const decoration: any = {
-      contentText: '■',
-      color: color,
-      margin: position === 'before' ? '0 4px 0 0' : '0 0 0 4px',
-      width: size,
-      height: size
-    };
-
     return vscode.window.createTextEditorDecorationType({
-      [position]: decoration,
+      [position]: {
+        contentText: '■',
+        color: color,
+        margin: position === 'before' ? '0 2px 0 0' : '0 0 0 4px',
+        width: size,
+        height: size
+      },
       rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
     });
   }
@@ -180,7 +178,7 @@ export class ColorDecorator {
       [position]: {
         contentText: '●',
         color: color,
-        margin: position === 'before' ? '0 4px 0 0' : '0 0 0 4px',
+        margin: position === 'before' ? '0 2px 0 0' : '0 0 0 4px',
         width: size,
         height: size
       },

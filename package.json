@@ -38,7 +38,7 @@
             "light",
             "dark"
           ],
-          "default": "auto",
+          "default": "light",
           "description": "主题模式：auto (跟随 VS Code)、light、dark"
         },
         "antdToken.colorDecorator.enabled": {
@@ -54,12 +54,12 @@
             "underline",
             "background"
           ],
-          "default": "square",
+          "default": "background",
           "enumDescriptions": [
-            "方形色块（默认）",
+            "方形色块",
             "圆形色块",
             "下划线",
-            "背景高亮"
+            "背景高亮（默认）"
           ],
           "description": "颜色装饰样式"
         },
