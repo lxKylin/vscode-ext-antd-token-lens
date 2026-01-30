@@ -3,6 +3,7 @@ import { TokenMatch } from '../tokenManager/tokenScanner';
 import { TokenRegistry } from '../tokenManager/tokenRegistry';
 import { ThemeManager } from '../tokenManager/themeManager';
 import { Config } from '../utils/config';
+import { getColorContrast } from '../utils/colorContrast';
 
 /**
  * 颜色装饰器
@@ -31,6 +32,8 @@ export class ColorDecorator {
     // 先清除旧装饰
     this.clear(editor);
 
+    const style = Config.getDecoratorStyle();
+
     // 按颜色分组 Token
     const colorGroups = new Map<string, vscode.Range[]>();
 
@@ -46,7 +49,11 @@ export class ColorDecorator {
         if (!colorGroups.has(color)) {
           colorGroups.set(color, []);
         }
-        colorGroups.get(color)!.push(match.range);
+
+        // 对于背景样式，只装饰 token 名称部分；其他样式装饰整个 var() 表达式
+        const rangeToDecorate =
+          style === 'background' ? match.tokenRange : match.range;
+        colorGroups.get(color)!.push(rangeToDecorate);
       }
     }
 
@@ -199,41 +206,14 @@ export class ColorDecorator {
   private createBackgroundDecoration(
     color: string
   ): vscode.TextEditorDecorationType {
-    // 计算浅色背景（降低不透明度）
-    const backgroundColor = this.addAlpha(color, 0.2);
+    // 使用实际颜色值作为背景，同时使用 WCAG 2.0 算法计算对比色文字
+    const textColor = getColorContrast(color);
     return vscode.window.createTextEditorDecorationType({
-      backgroundColor: backgroundColor,
+      backgroundColor: color,
+      color: textColor,
       borderRadius: '2px',
       rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
     });
-  }
-
-  /**
-   * 为颜色添加透明度
-   * @param color 颜色值
-   * @param alpha 透明度 (0-1)
-   * @returns rgba 颜色字符串
-   */
-  private addAlpha(color: string, alpha: number): string {
-    // 处理 hex 颜色
-    if (color.startsWith('#')) {
-      const hex = color.slice(1);
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    // 处理 rgb/rgba 颜色
-    if (color.startsWith('rgb')) {
-      const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-      if (match) {
-        return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
-      }
-    }
-
-    // 默认返回原颜色
-    return color;
   }
 
   /**

@@ -1,3 +1,11 @@
+/* 测试背景高亮样式 - 只高亮 token 名称，使用实际颜色值，采用 WCAG 2.0 对比度算法 */
+.background-highlight-test {
+  /* 试试切换到 background 样式查看效果 */
+  color: var(--ant-color-primary);
+  background: var(--ant-color-bg-container);
+  border-color: var(--ant-color-error);
+}
+
 /* 测试 Ant Design CSS Token 颜色可视化 */
 
 .test-container {

@@ -6,8 +6,10 @@ import * as vscode from 'vscode';
 export interface TokenMatch {
   /** Token 名称，如 --ant-color-primary */
   tokenName: string;
-  /** 在文档中的位置范围 */
+  /** 在文档中的位置范围（整个 var() 表达式） */
   range: vscode.Range;
+  /** Token 名称在文档中的位置范围（仅 token 名称部分） */
+  tokenRange: vscode.Range;
   /** 完整匹配文本，如 var(--ant-color-primary) */
   fullMatch: string;
 }
@@ -110,12 +112,22 @@ export class TokenScanner {
       const startIndex = match.index;
       const endIndex = startIndex + fullMatch.length;
 
+      // 计算 token 名称在原文中的位置
+      // var(--ant-color-primary) 中 --ant-color-primary 的位置
+      const tokenStartInMatch = fullMatch.indexOf(tokenName);
+      const tokenStartIndex = startIndex + tokenStartInMatch;
+      const tokenEndIndex = tokenStartIndex + tokenName.length;
+
       matches.push({
         tokenName,
         fullMatch,
         range: new vscode.Range(
           new vscode.Position(lineNumber, startIndex),
           new vscode.Position(lineNumber, endIndex)
+        ),
+        tokenRange: new vscode.Range(
+          new vscode.Position(lineNumber, tokenStartIndex),
+          new vscode.Position(lineNumber, tokenEndIndex)
         )
       });
     }

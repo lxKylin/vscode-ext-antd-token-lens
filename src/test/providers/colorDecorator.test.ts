@@ -59,7 +59,8 @@ suite('ColorDecorator Test Suite', () => {
       {
         tokenName: '--ant-color-primary',
         fullMatch: 'var(--ant-color-primary)',
-        range: new vscode.Range(0, 7, 0, 35)
+        range: new vscode.Range(0, 7, 0, 35),
+        tokenRange: new vscode.Range(0, 11, 0, 31)
       }
     ];
 
@@ -82,7 +83,8 @@ suite('ColorDecorator Test Suite', () => {
       {
         tokenName: '--ant-color-primary',
         fullMatch: 'var(--ant-color-primary)',
-        range: new vscode.Range(0, 7, 0, 35)
+        range: new vscode.Range(0, 7, 0, 35),
+        tokenRange: new vscode.Range(0, 11, 0, 31)
       }
     ];
 
@@ -111,12 +113,14 @@ suite('ColorDecorator Test Suite', () => {
       {
         tokenName: '--ant-color-primary',
         fullMatch: 'var(--ant-color-primary)',
-        range: new vscode.Range(1, 15, 1, 43)
+        range: new vscode.Range(1, 15, 1, 43),
+        tokenRange: new vscode.Range(1, 19, 1, 39)
       },
       {
         tokenName: '--ant-color-error',
         fullMatch: 'var(--ant-color-error)',
-        range: new vscode.Range(2, 20, 2, 46)
+        range: new vscode.Range(2, 20, 2, 46),
+        tokenRange: new vscode.Range(2, 24, 2, 42)
       }
     ];
 
@@ -152,7 +156,8 @@ suite('ColorDecorator Test Suite', () => {
       {
         tokenName: '--ant-font-size-base',
         fullMatch: 'var(--ant-font-size-base)',
-        range: new vscode.Range(0, 11, 0, 37)
+        range: new vscode.Range(0, 11, 0, 37),
+        tokenRange: new vscode.Range(0, 15, 0, 33)
       }
     ];
 
