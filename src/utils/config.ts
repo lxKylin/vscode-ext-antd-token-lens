@@ -19,7 +19,7 @@ export class Config {
   static getDecoratorStyle(): 'square' | 'circle' | 'underline' | 'background' {
     return vscode.workspace
       .getConfiguration('antdToken.colorDecorator')
-      .get('style', 'square');
+      .get('style', 'background');
   }
 
   /**

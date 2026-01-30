@@ -80,11 +80,19 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册命令：切换装饰器
   context.subscriptions.push(
     vscode.commands.registerCommand('antdToken.toggleDecorator', () => {
-      const config = vscode.workspace.getConfiguration(
-        'antdToken.colorDecorator'
+      const config = vscode.workspace.getConfiguration('antdToken');
+      const enabled = config.get('colorDecorator.enabled', true);
+      config.update(
+        'colorDecorator.enabled',
+        !enabled,
+        vscode.ConfigurationTarget.Global
       );
-      const enabled = config.get('enabled', true);
-      config.update('enabled', !enabled, vscode.ConfigurationTarget.Global);
+
+      // 立即刷新装饰
+      if (decorationManager) {
+        decorationManager.refresh();
+      }
+
       vscode.window.showInformationMessage(
         `Ant Design Token 装饰器已${!enabled ? '启用' : '禁用'}`
       );

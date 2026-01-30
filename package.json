@@ -1,7 +1,7 @@
 {
-  "name": "antd-css-tokens-highlight",
-  "displayName": "antd-css-tokens-highlight",
-  "description": "令antd css toke 在编辑器中可以显示色值,以及提示 css token",
+  "name": "ant-design-token-lens",
+  "displayName": "ant-design-token-lens",
+  "description": "Antd CSS Token 在编辑器中可以显示色值,以及提示 CSS Token",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.108.1"
@@ -9,7 +9,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [

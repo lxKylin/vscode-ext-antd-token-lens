@@ -111,11 +111,17 @@ export class ColorDecorator {
   private getOrCreateDecorationType(
     color: string
   ): vscode.TextEditorDecorationType {
-    if (!this.decorationTypes.has(color)) {
+    // 缓存键包含颜色和当前的样式配置
+    const style = Config.getDecoratorStyle();
+    const position = Config.getDecoratorPosition();
+    const size = Config.getDecoratorSize();
+    const cacheKey = `${color}-${style}-${position}-${size}`;
+
+    if (!this.decorationTypes.has(cacheKey)) {
       const decorationType = this.createDecorationType(color);
-      this.decorationTypes.set(color, decorationType);
+      this.decorationTypes.set(cacheKey, decorationType);
     }
-    return this.decorationTypes.get(color)!;
+    return this.decorationTypes.get(cacheKey)!;
   }
 
   /**

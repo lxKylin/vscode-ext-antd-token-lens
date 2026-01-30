@@ -59,15 +59,18 @@ export class DocumentDecorationManager {
       })
     );
 
-    // 初始化当前编辑器
-    if (vscode.window.activeTextEditor) {
-      this.updateEditor(vscode.window.activeTextEditor);
-    }
+    // 延迟初始化，确保配置已加载
+    setTimeout(() => {
+      // 初始化当前编辑器
+      if (vscode.window.activeTextEditor) {
+        this.updateEditor(vscode.window.activeTextEditor);
+      }
 
-    // 初始化所有可见编辑器
-    vscode.window.visibleTextEditors.forEach((editor) => {
-      this.updateEditor(editor);
-    });
+      // 初始化所有可见编辑器
+      vscode.window.visibleTextEditors.forEach((editor) => {
+        this.updateEditor(editor);
+      });
+    }, 100);
   }
 
   /**
@@ -75,7 +78,9 @@ export class DocumentDecorationManager {
    */
   private updateEditor(editor: vscode.TextEditor): void {
     // 检查是否启用装饰器
-    if (!Config.getDecoratorEnabled()) {
+    const enabled = Config.getDecoratorEnabled();
+
+    if (!enabled) {
       this.decorator.clear(editor);
       return;
     }
