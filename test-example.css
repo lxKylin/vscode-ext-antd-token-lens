@@ -1,0 +1,69 @@
+/**
+ * 测试用 CSS 文件
+ * 用于验证 Token 可视化功能
+ */
+
+:root {
+  /* 使用 Ant Design Token */
+  --custom-color: var(--ant-color-primary);
+  --custom-bg: var(--ant-color-bg-base);
+  --custom-text: var(--ant-color-text-base);
+}
+
+.example {
+  /* 品牌主色 */
+  color: var(--ant-color-primary);
+
+  /* 成功状态色 */
+  background-color: var(--ant-color-success);
+
+  /* 警告状态色 */
+  border-color: var(--ant-color-warning);
+
+  /* 错误状态色 */
+  outline-color: var(--ant-color-error);
+
+  /* 信息提示色 */
+  fill: var(--ant-color-info);
+
+  /* 链接颜色 */
+  stroke: var(--ant-color-link);
+
+  /* 基础文本颜色 */
+  caret-color: var(--ant-color-text-base);
+
+  /* 基础背景色 */
+  box-shadow: 0 0 10px var(--ant-color-bg-base);
+}
+
+.colors {
+  /* 蓝色系 */
+  --blue: var(--ant-blue);
+  --blue-1: var(--ant-blue-1);
+  --blue-2: var(--ant-blue-2);
+  --blue-3: var(--ant-blue-3);
+
+  /* 其他颜色 */
+  --red: var(--ant-red);
+  --green: var(--ant-green);
+  --yellow: var(--ant-yellow);
+  --orange: var(--ant-orange);
+  --purple: var(--ant-purple);
+  --cyan: var(--ant-cyan);
+}
+
+.sizes {
+  /* 尺寸相关 */
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  padding: var(--ant-size-unit);
+  height: var(--ant-control-height);
+  border-radius: var(--ant-border-radius);
+  border-width: var(--ant-line-width);
+}
+
+.animations {
+  /* 动画相关 */
+  transition-timing-function: var(--ant-motion-ease-out);
+  animation-timing-function: var(--ant-motion-ease-in-out);
+}

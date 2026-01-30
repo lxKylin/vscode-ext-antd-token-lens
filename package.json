@@ -17,11 +17,27 @@
         "command": "antd-css-tokens.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Ant Design Token",
+      "properties": {
+        "antdToken.themeMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "default": "auto",
+          "description": "主题模式：auto (跟随 VS Code)、light、dark"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && pnpm run copy-assets",
+    "copy-assets": "mkdir -p out/assets/css && cp src/assets/css/*.css out/assets/css/",
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",

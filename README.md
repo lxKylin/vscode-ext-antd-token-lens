@@ -1,71 +1,121 @@
-# antd-css-tokens README
+# Ant Design CSS Token VS Code 插件
 
-This is the README for your extension "antd-css-tokens". After writing up a brief description, we recommend including the following sections.
+一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。
 
-## Features
+## 项目介绍
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+在使用 Ant Design v5/v6 进行前端开发时，CSS Token（如 `--ant-color-primary`）是抽象的，开发者无法直观看到真实颜色效果。本插件旨在解决这个痛点，让 Token 使用更加直观和高效。
 
-For example if there is an image subfolder under your extension project workspace:
+## 功能特性
 
-\!\[feature X\]\(images/feature-x.png\)
+### 已完成（阶段1）
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Token 数据管理：完整的 Token 注册表和查询系统
+- 主题管理：自动检测和切换 Light/Dark 主题
+- 高性能：10000 次查询仅需 1ms
+- 类型安全：完整的 TypeScript 类型定义
+- 完善测试：35 个测试用例，覆盖核心功能
 
-## Requirements
+### 开发中
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- 颜色可视化：在编辑器中直接显示 Token 对应的颜色
+- Hover 提示：悬浮显示 Token 详细信息
+- 自动补全：智能提示可用的 Token
 
-## Extension Settings
+### 计划中
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- 自定义 Token 支持
+- Token 使用统计
+- 设计规范检查
 
-For example:
+## 技术架构
 
-This extension contributes the following settings:
+### Token 数据层（已完成）
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+```
+src/
+├── data/                      # 数据定义
+│   ├── antdTokens.ts         # Token 类型和加载
+│   └── tokenMetadata.ts      # Token 元数据
+├── tokenManager/              # 管理器
+│   ├── tokenRegistry.ts      # Token 注册表
+│   ├── themeManager.ts       # 主题管理器
+│   └── cssParser.ts          # CSS 解析器
+└── assets/css/                # 内置 Token
+    ├── antd-light-theme.css
+    └── antd-dark-theme.css
+```
 
-## Known Issues
+## 数据统计
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- 支持 Token 数量：542（Light 271 + Dark 271）
+- 颜色类 Token：200+
+- 带语义描述：100+
+- 自动分类准确率：> 95%
 
-## Release Notes
+## 开发与测试
 
-Users appreciate release notes as you update your extension.
+### 安装依赖
 
-### 1.0.0
+```bash
+pnpm install
+```
 
-Initial release of ...
+### 编译项目
 
-### 1.0.1
+```bash
+pnpm run compile
+```
 
-Fixed issue #.
+### 运行测试
 
-### 1.1.0
+```bash
+pnpm test
+```
 
-Added features X, Y, and Z.
+### 开发调试
 
----
+按 `F5` 启动调试，会打开一个新的 VS Code 窗口加载插件。
 
-## Following extension guidelines
+## 使用示例
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+```typescript
+import { tokenRegistry, themeManager } from './tokenManager';
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+// 查询 Token
+const token = tokenRegistry.get(
+  '--ant-color-primary',
+  themeManager.getCurrentTheme()
+);
 
-## Working with Markdown
+console.log(token?.value); // '#1677ff' (light)
+console.log(token?.description); // '品牌主色'
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+// 搜索 Token
+const colorTokens = tokenRegistry.search('color');
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+// 监听主题变化
+themeManager.onThemeChange((theme) => {
+  console.log('Theme changed to:', theme);
+});
+```
 
-## For more information
+## 开发进度
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+- [x] 阶段1：Token 数据层（已完成）
+- [ ] 阶段2：颜色可视化
+- [ ] 阶段3：Hover 提示
+- [ ] 阶段4：自动补全
+- [ ] 阶段5：自定义 Token
 
-**Enjoy!**
+详见 [docs/开发计划.md](docs/开发计划.md)
+
+## 开发文档
+
+- [需求说明](docs/需求说明.md)
+- [开发计划](docs/开发计划.md)
+- [阶段1完成总结](docs/阶段1-完成总结.md)
+
+## License
+
+MIT
