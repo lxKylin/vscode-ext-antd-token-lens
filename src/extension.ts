@@ -7,6 +7,11 @@ import {
   themeManager,
   dispose
 } from './tokenManager';
+import { TokenScanner } from './tokenManager/tokenScanner';
+import { ColorDecorator } from './providers/colorDecorator';
+import { DocumentDecorationManager } from './providers/documentDecorationManager';
+
+let decorationManager: DocumentDecorationManager | undefined;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -24,6 +29,18 @@ export function activate(context: vscode.ExtensionContext) {
     console.log(`- Total tokens: ${tokenRegistry.size}`);
     console.log(`- Unique token names: ${tokenRegistry.uniqueSize}`);
     console.log(`- Current theme: ${themeManager.getCurrentTheme()}`);
+
+    // 创建装饰器
+    const scanner = new TokenScanner();
+    const decorator = new ColorDecorator(tokenRegistry, themeManager);
+
+    // 创建装饰管理器
+    decorationManager = new DocumentDecorationManager(scanner, decorator);
+
+    // 注册到上下文
+    context.subscriptions.push(decorationManager);
+
+    console.log('Color Decorator initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Token Registry:', error);
     vscode.window.showErrorMessage(
@@ -51,9 +68,32 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(disposable);
+
+  // 注册命令：刷新装饰
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.refreshDecorations', () => {
+      decorationManager?.refresh();
+      vscode.window.showInformationMessage('Ant Design Token 装饰已刷新');
+    })
+  );
+
+  // 注册命令：切换装饰器
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.toggleDecorator', () => {
+      const config = vscode.workspace.getConfiguration(
+        'antdToken.colorDecorator'
+      );
+      const enabled = config.get('enabled', true);
+      config.update('enabled', !enabled, vscode.ConfigurationTarget.Global);
+      vscode.window.showInformationMessage(
+        `Ant Design Token 装饰器已${!enabled ? '启用' : '禁用'}`
+      );
+    })
+  );
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {
+  decorationManager?.dispose();
   dispose();
 }

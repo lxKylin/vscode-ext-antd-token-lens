@@ -1,0 +1,74 @@
+/* 测试 Ant Design CSS Token 颜色可视化 */
+
+.test-container {
+  /* 测试基本颜色 token */
+  color: var(--ant-color-primary);
+  background-color: var(--ant-color-bg-container);
+
+  /* 测试带 fallback 的 token */
+  border-color: var(--ant-color-border, #d9d9d9);
+
+  /* 测试多个 token 在一行 */
+  box-shadow:
+    0 2px 8px var(--ant-color-shadow),
+    0 0 0 1px var(--ant-color-border-secondary);
+}
+
+.primary-button {
+  background: var(--ant-color-primary);
+  color: var(--ant-color-text-light-solid);
+  border: 1px solid var(--ant-color-primary-border);
+}
+
+.primary-button:hover {
+  background: var(--ant-color-primary-hover);
+  border-color: var(--ant-color-primary-border-hover);
+}
+
+.danger-alert {
+  background-color: var(--ant-color-error-bg);
+  color: var(--ant-color-error-text);
+  border: 1px solid var(--ant-color-error-border);
+}
+
+.success-tag {
+  background: var(--ant-color-success-bg);
+  color: var(--ant-color-success-text);
+  border-color: var(--ant-color-success-border);
+}
+
+.info-card {
+  background: var(--ant-color-info-bg);
+  color: var(--ant-color-info-text);
+  border: 1px solid var(--ant-color-info-border);
+}
+
+/* 测试蓝色系列 */
+.blue-palette {
+  color-1: var(--ant-blue-1);
+  color-2: var(--ant-blue-2);
+  color-3: var(--ant-blue-3);
+  color-4: var(--ant-blue-4);
+  color-5: var(--ant-blue-5);
+  color-6: var(--ant-blue-6);
+  color-7: var(--ant-blue-7);
+  color-8: var(--ant-blue-8);
+  color-9: var(--ant-blue-9);
+  color-10: var(--ant-blue-10);
+}
+
+/* 测试文本颜色 */
+.text-colors {
+  primary: var(--ant-color-text);
+  secondary: var(--ant-color-text-secondary);
+  tertiary: var(--ant-color-text-tertiary);
+  quaternary: var(--ant-color-text-quaternary);
+}
+
+/* 测试背景颜色 */
+.bg-colors {
+  layout: var(--ant-color-bg-layout);
+  container: var(--ant-color-bg-container);
+  elevated: var(--ant-color-bg-elevated);
+  spotlight: var(--ant-color-bg-spotlight);
+}

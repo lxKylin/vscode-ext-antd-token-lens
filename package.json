@@ -16,6 +16,16 @@
       {
         "command": "antd-css-tokens.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "antdToken.refreshDecorations",
+        "title": "Refresh Token Decorations",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.toggleDecorator",
+        "title": "Toggle Color Decorator",
+        "category": "Ant Design Token"
       }
     ],
     "configuration": {
@@ -30,6 +40,47 @@
           ],
           "default": "auto",
           "description": "主题模式：auto (跟随 VS Code)、light、dark"
+        },
+        "antdToken.colorDecorator.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用颜色装饰器"
+        },
+        "antdToken.colorDecorator.style": {
+          "type": "string",
+          "enum": [
+            "square",
+            "circle",
+            "underline",
+            "background"
+          ],
+          "default": "square",
+          "enumDescriptions": [
+            "方形色块（默认）",
+            "圆形色块",
+            "下划线",
+            "背景高亮"
+          ],
+          "description": "颜色装饰样式"
+        },
+        "antdToken.colorDecorator.position": {
+          "type": "string",
+          "enum": [
+            "before",
+            "after"
+          ],
+          "default": "before",
+          "description": "颜色块显示位置"
+        },
+        "antdToken.colorDecorator.size": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "default": "medium",
+          "description": "颜色块大小"
         }
       }
     }
