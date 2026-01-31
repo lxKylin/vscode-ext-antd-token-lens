@@ -38,6 +38,13 @@ export function activate(context: vscode.ExtensionContext) {
     // 创建装饰管理器
     decorationManager = new DocumentDecorationManager(scanner, decorator);
 
+    // 监听主题切换，自动刷新装饰
+    context.subscriptions.push(
+      themeManager.onThemeChange(() => {
+        decorationManager?.refresh();
+      })
+    );
+
     // 注册到上下文
     context.subscriptions.push(decorationManager);
 
