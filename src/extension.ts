@@ -159,13 +159,49 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'antdToken.findReferences',
-      async (tokenName: string) => {
-        // 在工作区中搜索该 Token 的所有使用
-        const pattern = `var(${tokenName})`;
-        await vscode.commands.executeCommand('workbench.action.findInFiles', {
-          query: pattern,
-          isRegex: false
-        });
+      async (tokenName?: string) => {
+        let targetToken = tokenName;
+
+        // 如果没有提供 token 名称，尝试从当前编辑器选区获取，或者让用户输入
+        if (!targetToken) {
+          const editor = vscode.window.activeTextEditor;
+          if (editor) {
+            const selection = editor.document.getText(editor.selection);
+            // 简单的正则检查，看是否看起来像一个 token
+            if (selection && selection.trim().length > 0) {
+              // 如果选中的是完整的 var(--token)，提取 token 名
+              const varMatch = selection.match(/var\(([^)]+)\)/);
+              if (varMatch) {
+                targetToken = varMatch[1];
+              } else {
+                // 假设选中的就是 token 名 (例如 --ant-primary-color)
+                targetToken = selection.trim();
+              }
+            }
+          }
+        }
+
+        // 如果还是没有获取到，弹出输入框让用户输入
+        if (!targetToken) {
+          targetToken = await vscode.window.showInputBox({
+            placeHolder: '输入 Token 名称 (例如 --ant-color-primary)',
+            prompt: '查找 Token 引用',
+            value: '--ant-'
+          });
+        }
+
+        if (targetToken) {
+          // 在工作区中搜索该 Token 的所有使用
+          // 如果用户输入的已经是 var(...) 格式，就不再包裹
+          const query = targetToken.startsWith('var(')
+            ? targetToken
+            : `var(${targetToken})`;
+
+          await vscode.commands.executeCommand('workbench.action.findInFiles', {
+            query: query,
+            isRegex: false
+          });
+        }
       }
     )
   );
