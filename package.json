@@ -1,7 +1,7 @@
 {
   "name": "ant-design-token-lens",
   "displayName": "ant-design-token-lens",
-  "description": "Antd CSS Token 在编辑器中可以显示色值,以及提示 CSS Token",
+  "description": "一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.108.1"
@@ -55,6 +55,11 @@
       {
         "command": "antdToken.refreshTokens",
         "title": "刷新 Token 数据",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.clearRecentTokens",
+        "title": "清空最近使用的 Token",
         "category": "Ant Design Token"
       }
     ],
@@ -154,6 +159,48 @@
             "显示详细信息"
           ],
           "description": "Hover 信息详细程度"
+        },
+        "antdToken.enableCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用 Token 自动补全"
+        },
+        "antdToken.completionDetailLevel": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "normal",
+            "detailed"
+          ],
+          "default": "normal",
+          "enumDescriptions": [
+            "仅显示基本信息",
+            "显示常规信息",
+            "显示详细信息"
+          ],
+          "description": "补全项详细程度"
+        },
+        "antdToken.showRecentTokensFirst": {
+          "type": "boolean",
+          "default": true,
+          "description": "最近使用的 Token 优先显示"
+        },
+        "antdToken.maxRecentTokens": {
+          "type": "number",
+          "default": 10,
+          "minimum": 5,
+          "maximum": 50,
+          "description": "记录的最近使用 Token 数量"
+        },
+        "antdToken.enablePinyinSearch": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用拼音首字母搜索"
+        },
+        "antdToken.enableCategoryGroups": {
+          "type": "boolean",
+          "default": false,
+          "description": "按分类分组显示补全项"
         }
       }
     }
@@ -174,6 +221,7 @@
     "@types/color": "^4.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/pinyin": "^2.10.2",
     "@types/vscode": "^1.108.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -183,6 +231,7 @@
     "typescript-eslint": "^8.52.0"
   },
   "dependencies": {
-    "color": "^5.0.3"
+    "color": "^5.0.3",
+    "pinyin": "^4.0.0"
   }
 }

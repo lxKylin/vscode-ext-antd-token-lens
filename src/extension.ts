@@ -11,8 +11,11 @@ import { TokenScanner } from './tokenManager/tokenScanner';
 import { ColorDecorator } from './providers/colorDecorator';
 import { DocumentDecorationManager } from './providers/documentDecorationManager';
 import { AntdTokenHoverProvider } from './providers/hoverProvider';
+import { AntdTokenCompletionProvider } from './providers/completionProvider';
+import { HoverContentBuilder } from './providers/hoverContentBuilder';
 
 let decorationManager: DocumentDecorationManager | undefined;
+let completionProvider: AntdTokenCompletionProvider | undefined;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -81,6 +84,50 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     console.log('Hover provider registered for supported languages');
+
+    // 创建 HoverContentBuilder（供 CompletionProvider 复用）
+    const hoverContentBuilder = new HoverContentBuilder(
+      tokenRegistry,
+      themeManager
+    );
+
+    // 创建 CompletionProvider
+    completionProvider = new AntdTokenCompletionProvider(
+      tokenRegistry,
+      themeManager,
+      hoverContentBuilder
+    );
+
+    // 注册 CompletionProvider 到所有支持的语言
+    for (const language of supportedLanguages) {
+      context.subscriptions.push(
+        vscode.languages.registerCompletionItemProvider(
+          { scheme: 'file', language },
+          completionProvider,
+          '-', // 触发字符：-
+          '(' // 触发字符：(
+        )
+      );
+    }
+
+    console.log('Completion provider registered for supported languages');
+
+    // 监听配置变化清空缓存
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('antdToken')) {
+          completionProvider?.clearCache();
+          console.log('Completion cache cleared due to config change');
+        }
+      })
+    );
+
+    // 监听主题变化清空补全缓存
+    context.subscriptions.push(
+      themeManager.onThemeChange(() => {
+        completionProvider?.clearCache();
+      })
+    );
   } catch (error) {
     console.error('Failed to initialize Token Registry:', error);
     vscode.window.showErrorMessage(
@@ -226,7 +273,28 @@ export function activate(context: vscode.ExtensionContext) {
       // 刷新所有装饰
       decorationManager?.refresh();
 
+      // 清空补全缓存
+      completionProvider?.clearCache();
+
       vscode.window.showInformationMessage('Token 数据已刷新');
+    })
+  );
+
+  // 注册补全项选择命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'antdToken.onCompletionItemSelected',
+      (tokenName: string) => {
+        completionProvider?.recordTokenUsage(tokenName);
+      }
+    )
+  );
+
+  // 注册清空最近使用记录命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.clearRecentTokens', () => {
+      completionProvider?.clearRecentTokens();
+      vscode.window.showInformationMessage('已清空最近使用的 Token 记录');
     })
   );
 }

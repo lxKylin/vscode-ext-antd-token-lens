@@ -77,4 +77,61 @@ export class Config {
       .getConfiguration('antdToken')
       .get('hoverVerbosity', 'normal') as 'minimal' | 'normal' | 'detailed';
   }
+
+  /**
+   * 获取是否启用补全
+   */
+  static getEnableCompletion(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('enableCompletion', true);
+  }
+
+  /**
+   * 获取补全项详细程度
+   */
+  static getCompletionDetailLevel(): 'minimal' | 'normal' | 'detailed' {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('completionDetailLevel', 'normal') as
+      | 'minimal'
+      | 'normal'
+      | 'detailed';
+  }
+
+  /**
+   * 获取是否最近使用的 Token 优先显示
+   */
+  static getShowRecentTokensFirst(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('showRecentTokensFirst', true);
+  }
+
+  /**
+   * 获取最近使用 Token 最大数量
+   */
+  static getMaxRecentTokens(): number {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('maxRecentTokens', 10);
+  }
+
+  /**
+   * 获取是否启用拼音搜索
+   */
+  static getEnablePinyinSearch(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('enablePinyinSearch', true);
+  }
+
+  /**
+   * 获取是否启用分类分组
+   */
+  static getEnableCategoryGroups(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('enableCategoryGroups', false);
+  }
 }
