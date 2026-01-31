@@ -3,7 +3,7 @@
  * 提供中心化的 Token 管理和高效查询能力
  */
 
-import { TokenInfo, TokenCategory } from '../data/antdTokens';
+import { TokenInfo, TokenCategory } from '@/data/antdTokens';
 
 // 导出 TokenInfo 以供其他模块使用
 export type { TokenInfo, TokenCategory };

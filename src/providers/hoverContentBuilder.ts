@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { TokenInfo, TokenRegistry } from '../tokenManager/tokenRegistry';
-import { ThemeManager } from '../tokenManager/themeManager';
-import { Config } from '../utils/config';
-import { ColorConverter, ColorFormats } from '../utils/colorConverter';
-import { ColorContrast } from '../utils/colorContrast';
+import { TokenInfo, TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
+import { Config } from '@/utils/config';
+import { ColorConverter, ColorFormats } from '@/utils/colorConverter';
+import { ColorContrast } from '@/utils/colorContrast';
 
 /**
  * Hover 内容构建器

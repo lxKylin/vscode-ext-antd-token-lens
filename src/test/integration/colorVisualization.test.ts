@@ -1,13 +1,14 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import {
   initializeTokenRegistry,
   tokenRegistry,
   themeManager
-} from '../../tokenManager';
-import { TokenScanner } from '../../tokenManager/tokenScanner';
-import { ColorDecorator } from '../../providers/colorDecorator';
-import { DocumentDecorationManager } from '../../providers/documentDecorationManager';
+} from '@/tokenManager';
+import { TokenScanner } from '@/tokenManager/tokenScanner';
+import { ColorDecorator } from '@/providers/colorDecorator';
+import { DocumentDecorationManager } from '@/providers/documentDecorationManager';
 
 suite('Color Visualization Integration Test', () => {
   let scanner: TokenScanner;
@@ -16,7 +17,8 @@ suite('Color Visualization Integration Test', () => {
 
   suiteSetup(() => {
     // 初始化 Token Registry
-    initializeTokenRegistry();
+    const assetsPath = path.resolve(__dirname, '../../assets/css');
+    initializeTokenRegistry(assetsPath);
   });
 
   setup(() => {

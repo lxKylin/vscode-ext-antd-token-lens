@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   try {
     // 初始化 Token 管理模块
-    initializeTokenRegistry();
+    initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
     console.log('Token Registry initialized successfully');
     console.log(`- Total tokens: ${tokenRegistry.size}`);
     console.log(`- Unique token names: ${tokenRegistry.uniqueSize}`);
@@ -178,7 +178,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('antdToken.refreshTokens', () => {
       // 重新初始化 Token 注册表
-      initializeTokenRegistry();
+      initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
 
       // 刷新所有装饰
       decorationManager?.refresh();

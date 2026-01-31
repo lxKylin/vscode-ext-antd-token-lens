@@ -171,7 +171,7 @@ export function inferTokenCategory(name: string): TokenCategory {
 /**
  * 加载内置的 Ant Design Token
  */
-export function loadBuiltinTokens(): ThemeTokens {
+export function loadBuiltinTokens(cssFolderPath: string): ThemeTokens {
   const fs = require('fs');
   const path = require('path');
   const {
@@ -180,11 +180,8 @@ export function loadBuiltinTokens(): ThemeTokens {
   const { getTokenDescription } = require('./tokenMetadata');
 
   // 获取 CSS 文件路径
-  const lightCssPath = path.join(
-    __dirname,
-    '../assets/css/antd-light-theme.css'
-  );
-  const darkCssPath = path.join(__dirname, '../assets/css/antd-dark-theme.css');
+  const lightCssPath = path.join(cssFolderPath, 'antd-light-theme.css');
+  const darkCssPath = path.join(cssFolderPath, 'antd-dark-theme.css');
 
   // 读取 CSS 文件内容
   const lightCssContent = fs.readFileSync(lightCssPath, 'utf-8');

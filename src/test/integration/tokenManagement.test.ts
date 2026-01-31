@@ -4,9 +4,10 @@
  */
 
 import * as assert from 'assert';
-import { TokenRegistry } from '../../tokenManager/tokenRegistry';
-import { ThemeManager } from '../../tokenManager/themeManager';
-import { loadBuiltinTokens } from '../../data/antdTokens';
+import * as path from 'path';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
+import { loadBuiltinTokens } from '@/data/antdTokens';
 
 suite('Token Management Integration Test', () => {
   let registry: TokenRegistry;
@@ -24,7 +25,9 @@ suite('Token Management Integration Test', () => {
 
   test('load and query tokens', () => {
     // 加载内置 Token
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
 
     assert.ok(tokens.light.length > 0, 'Should have light theme tokens');
     assert.ok(tokens.dark.length > 0, 'Should have dark theme tokens');
@@ -54,7 +57,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('theme switch updates token context', (done) => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     const initialTheme = themeManager.getCurrentTheme();
@@ -77,7 +82,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('token categorization', () => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     // 测试颜色类别
@@ -111,7 +118,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('token search functionality', () => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     // 搜索颜色相关 Token
@@ -131,7 +140,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('token description availability', () => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     // 检查常用 Token 是否有描述
@@ -153,7 +164,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('performance with full token set', () => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     const startTime = Date.now();
@@ -173,7 +186,9 @@ suite('Token Management Integration Test', () => {
   });
 
   test('token source tracking', () => {
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(
+      path.resolve(__dirname, '../../assets/css')
+    );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
 
     const allTokens = [

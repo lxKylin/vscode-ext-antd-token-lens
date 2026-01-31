@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ColorDecorator } from '../../providers/colorDecorator';
-import { TokenRegistry } from '../../tokenManager/tokenRegistry';
-import { ThemeManager } from '../../tokenManager/themeManager';
-import { TokenMatch } from '../../tokenManager/tokenScanner';
+import { ColorDecorator } from '@/providers/colorDecorator';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
+import { TokenMatch } from '@/tokenManager/tokenScanner';
 
 suite('ColorDecorator Test Suite', () => {
   let decorator: ColorDecorator;

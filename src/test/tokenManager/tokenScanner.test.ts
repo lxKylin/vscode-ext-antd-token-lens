@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { TokenScanner } from '../../tokenManager/tokenScanner';
+import { TokenScanner } from '@/tokenManager/tokenScanner';
 
 suite('TokenScanner Test Suite', () => {
   let scanner: TokenScanner;

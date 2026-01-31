@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ColorConverter } from '../../utils/colorConverter';
+import { ColorConverter } from '@/utils/colorConverter';
 
 suite('ColorConverter Test Suite', () => {
   test('convert hex to all formats', () => {

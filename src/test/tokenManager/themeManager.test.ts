@@ -3,7 +3,7 @@
  */
 
 import * as assert from 'assert';
-import { ThemeManager, ThemeMode } from '../../tokenManager/themeManager';
+import { ThemeManager, ThemeMode } from '@/tokenManager/themeManager';
 
 suite('ThemeManager Test Suite', () => {
   let themeManager: ThemeManager;

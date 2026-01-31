@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { TokenRegistry } from '../tokenManager/tokenRegistry';
-import { ThemeManager } from '../tokenManager/themeManager';
-import { TokenScanner } from '../tokenManager/tokenScanner';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
+import { TokenScanner } from '@/tokenManager/tokenScanner';
 import { HoverContentBuilder } from './hoverContentBuilder';
-import { PerformanceMonitor } from '../utils/performance';
+import { PerformanceMonitor } from '@/utils/performance';
 
 /**
  * Ant Design Token Hover 提供者

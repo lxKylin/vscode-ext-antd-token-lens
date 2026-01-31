@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { ColorContrast } from '../../utils/colorContrast';
+import { ColorContrast } from '@/utils/colorContrast';
 
 suite('ColorContrast Test Suite', () => {
   test('calculate contrast ratio', () => {

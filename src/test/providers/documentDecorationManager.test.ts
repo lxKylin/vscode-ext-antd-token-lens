@@ -1,10 +1,10 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { DocumentDecorationManager } from '../../providers/documentDecorationManager';
-import { TokenScanner } from '../../tokenManager/tokenScanner';
-import { ColorDecorator } from '../../providers/colorDecorator';
-import { TokenRegistry } from '../../tokenManager/tokenRegistry';
-import { ThemeManager } from '../../tokenManager/themeManager';
+import { DocumentDecorationManager } from '@/providers/documentDecorationManager';
+import { TokenScanner } from '@/tokenManager/tokenScanner';
+import { ColorDecorator } from '@/providers/colorDecorator';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
 
 suite('DocumentDecorationManager Test Suite', () => {
   let manager: DocumentDecorationManager;

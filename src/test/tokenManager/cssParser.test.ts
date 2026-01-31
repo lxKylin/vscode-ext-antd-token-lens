@@ -7,7 +7,7 @@ import {
   parseCSSVariables,
   parseCSSVariablesFromSelector,
   parseCSSVariablesFromSelectors
-} from '../../tokenManager/cssParser';
+} from '@/tokenManager/cssParser';
 
 suite('CSS Parser Test Suite', () => {
   test('parse simple CSS variables', () => {

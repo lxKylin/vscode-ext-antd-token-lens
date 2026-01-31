@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { TokenScanner } from '../tokenManager/tokenScanner';
+import { TokenScanner } from '@/tokenManager/tokenScanner';
 import { ColorDecorator } from './colorDecorator';
-import { Config } from '../utils/config';
-import { debounce, PerformanceMonitor } from '../utils/performance';
+import { Config } from '@/utils/config';
+import { debounce, PerformanceMonitor } from '@/utils/performance';
 
 /**
  * 文档装饰管理器

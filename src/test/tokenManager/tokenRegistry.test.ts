@@ -3,8 +3,8 @@
  */
 
 import * as assert from 'assert';
-import { TokenRegistry } from '../../tokenManager/tokenRegistry';
-import { TokenInfo } from '../../data/antdTokens';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { TokenInfo } from '@/data/antdTokens';
 
 suite('TokenRegistry Test Suite', () => {
   let registry: TokenRegistry;

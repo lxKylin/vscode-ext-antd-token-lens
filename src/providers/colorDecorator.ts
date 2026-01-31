@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { TokenMatch } from '../tokenManager/tokenScanner';
-import { TokenRegistry } from '../tokenManager/tokenRegistry';
-import { ThemeManager } from '../tokenManager/themeManager';
-import { Config } from '../utils/config';
-import { getColorContrast } from '../utils/colorContrast';
+import { TokenMatch } from '@/tokenManager/tokenScanner';
+import { TokenRegistry } from '@/tokenManager/tokenRegistry';
+import { ThemeManager } from '@/tokenManager/themeManager';
+import { Config } from '@/utils/config';
+import { getColorContrast } from '@/utils/colorContrast';
 
 /**
  * 颜色装饰器

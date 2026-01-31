@@ -5,7 +5,7 @@
 
 import { TokenRegistry } from './tokenRegistry';
 import { ThemeManager } from './themeManager';
-import { loadBuiltinTokens } from '../data/antdTokens';
+import { loadBuiltinTokens } from '@/data/antdTokens';
 
 /** 全局 Token 注册表单例 */
 export const tokenRegistry = new TokenRegistry();
@@ -20,7 +20,7 @@ let initialized = false;
  * 初始化 Token 管理模块
  * 加载内置 Token 并注册到 TokenRegistry
  */
-export function initializeTokenRegistry(): void {
+export function initializeTokenRegistry(assetsPath: string): void {
   if (initialized) {
     console.warn('TokenRegistry already initialized');
     return;
@@ -28,7 +28,7 @@ export function initializeTokenRegistry(): void {
 
   try {
     // 加载内置 Token
-    const tokens = loadBuiltinTokens();
+    const tokens = loadBuiltinTokens(assetsPath);
 
     // 注册所有 Token
     tokenRegistry.registerBatch([...tokens.light, ...tokens.dark]);
