@@ -163,7 +163,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/color": "^3",
+    "@types/color": "^4.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/vscode": "^1.108.1",
@@ -175,6 +175,6 @@
     "typescript-eslint": "^8.52.0"
   },
   "dependencies": {
-    "color": "^4"
+    "color": "^5.0.3"
   }
 }

@@ -1,4 +1,4 @@
-import Color = require('color');
+import Color from 'color';
 
 /**
  * 颜色对比度计算工具

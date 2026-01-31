@@ -1,4 +1,4 @@
-import Color = require('color');
+import Color from 'color';
 
 export interface ColorFormats {
   hex: string;
