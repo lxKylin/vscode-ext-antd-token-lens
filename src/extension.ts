@@ -10,6 +10,7 @@ import {
 import { TokenScanner } from './tokenManager/tokenScanner';
 import { ColorDecorator } from './providers/colorDecorator';
 import { DocumentDecorationManager } from './providers/documentDecorationManager';
+import { AntdTokenHoverProvider } from './providers/hoverProvider';
 
 let decorationManager: DocumentDecorationManager | undefined;
 
@@ -41,6 +42,38 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(decorationManager);
 
     console.log('Color Decorator initialized successfully');
+
+    // 创建 HoverProvider
+    const hoverProvider = new AntdTokenHoverProvider(
+      tokenRegistry,
+      themeManager,
+      scanner
+    );
+
+    // 注册 HoverProvider 到所有支持的语言
+    const supportedLanguages = [
+      'css',
+      'less',
+      'scss',
+      'sass',
+      'javascript',
+      'javascriptreact',
+      'typescript',
+      'typescriptreact',
+      'vue',
+      'html'
+    ];
+
+    for (const language of supportedLanguages) {
+      context.subscriptions.push(
+        vscode.languages.registerHoverProvider(
+          { scheme: 'file', language },
+          hoverProvider
+        )
+      );
+    }
+
+    console.log('Hover provider registered for supported languages');
   } catch (error) {
     console.error('Failed to initialize Token Registry:', error);
     vscode.window.showErrorMessage(
@@ -96,6 +129,61 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage(
         `Ant Design Token 装饰器已${!enabled ? '启用' : '禁用'}`
       );
+    })
+  );
+
+  // 命令：复制 Token 值
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'antdToken.copyTokenValue',
+      (tokenName: string) => {
+        const currentTheme = themeManager.getCurrentTheme();
+        const tokenInfo = tokenRegistry.get(tokenName, currentTheme);
+
+        if (tokenInfo) {
+          vscode.env.clipboard.writeText(tokenInfo.value);
+          vscode.window.showInformationMessage(`已复制: ${tokenInfo.value}`);
+        }
+      }
+    )
+  );
+
+  // 命令：查找所有引用
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'antdToken.findReferences',
+      async (tokenName: string) => {
+        // 在工作区中搜索该 Token 的所有使用
+        const pattern = `var(${tokenName})`;
+        await vscode.commands.executeCommand('workbench.action.findInFiles', {
+          query: pattern,
+          isRegex: false
+        });
+      }
+    )
+  );
+
+  // 命令：切换主题预览
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.toggleThemePreview', () => {
+      const currentTheme = themeManager.getCurrentTheme();
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      themeManager.setTheme(newTheme);
+
+      vscode.window.showInformationMessage(`已切换到 ${newTheme} 主题预览`);
+    })
+  );
+
+  // 命令：刷新 Token 数据
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.refreshTokens', () => {
+      // 重新初始化 Token 注册表
+      initializeTokenRegistry();
+
+      // 刷新所有装饰
+      decorationManager?.refresh();
+
+      vscode.window.showInformationMessage('Token 数据已刷新');
     })
   );
 }

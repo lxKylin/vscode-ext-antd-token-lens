@@ -50,4 +50,31 @@ export class Config {
   ): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration(callback);
   }
+
+  /**
+   * 获取是否显示多主题对比
+   */
+  static getShowMultiTheme(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('showMultiTheme', true);
+  }
+
+  /**
+   * 获取是否显示颜色格式转换
+   */
+  static getShowColorFormats(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('showColorFormats', true);
+  }
+
+  /**
+   * 获取 Hover 详细程度
+   */
+  static getHoverVerbosity(): 'minimal' | 'normal' | 'detailed' {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('hoverVerbosity', 'normal') as 'minimal' | 'normal' | 'detailed';
+  }
 }

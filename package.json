@@ -28,6 +28,39 @@
         "command": "antdToken.toggleDecorator",
         "title": "Toggle Color Decorator",
         "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.copyTokenValue",
+        "title": "复制 Token 值",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.findReferences",
+        "title": "查找 Token 引用",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.toggleThemePreview",
+        "title": "切换主题预览",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.refreshTokens",
+        "title": "刷新 Token 数据",
+        "category": "Ant Design Token"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "antdToken.toggleThemePreview",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "antdToken.refreshTokens",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
       }
     ],
     "configuration": {
@@ -83,6 +116,36 @@
           ],
           "default": "medium",
           "description": "颜色块大小"
+        },
+        "antdToken.enableHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用鼠标悬停提示功能"
+        },
+        "antdToken.showMultiTheme": {
+          "type": "boolean",
+          "default": true,
+          "description": "在 Hover 中显示多主题对比"
+        },
+        "antdToken.showColorFormats": {
+          "type": "boolean",
+          "default": true,
+          "description": "在 Hover 中显示多种颜色格式"
+        },
+        "antdToken.hoverVerbosity": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "normal",
+            "detailed"
+          ],
+          "default": "normal",
+          "enumDescriptions": [
+            "仅显示基本信息",
+            "显示常规信息",
+            "显示详细信息"
+          ],
+          "description": "Hover 信息详细程度"
         }
       }
     }
@@ -97,13 +160,17 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.108.1",
+    "@types/color": "^3",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.52.0",
+    "@types/vscode": "^1.108.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript-eslint": "^8.52.0"
+  },
+  "dependencies": {
+    "color": "^4"
   }
 }

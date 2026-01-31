@@ -5,6 +5,9 @@
 
 import { TokenInfo, TokenCategory } from '../data/antdTokens';
 
+// 导出 TokenInfo 以供其他模块使用
+export type { TokenInfo, TokenCategory };
+
 export class TokenRegistry {
   /** 按名称索引的 Token */
   private tokens: Map<string, TokenInfo[]>;

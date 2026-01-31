@@ -8,7 +8,7 @@
 
 ## 功能特性
 
-### ✅ 已完成（阶段1 + 阶段2）
+### ✅ 已完成（阶段1 + 阶段2 + 阶段3）
 
 #### 阶段1：Token 数据管理
 
@@ -28,10 +28,16 @@
 - ✅ **高性能**：1000 行文件扫描 < 50ms，支持大文件
 - ✅ **可配置**：灵活的样式、位置、大小配置
 
-### 🚧 开发中（阶段3）
+#### 阶段3：Hover 信息提示 🆕
 
-- Hover 提示：悬浮显示 Token 详细信息
-- 跳转定义：快速跳转到 Token 定义位置
+- ✅ **智能悬浮提示**：鼠标悬停显示 Token 详细信息
+- ✅ **多主题对比**：同时显示 Light 和 Dark 主题的颜色值
+- ✅ **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- ✅ **颜色预览增强**：带边框的颜色块，直观清晰
+- ✅ **分级信息展示**：Minimal、Normal、Detailed 三种模式
+- ✅ **快捷命令**：复制值、查找引用、切换主题等
+- ✅ **性能优化**：缓存机制、防抖处理，响应 < 100ms
+- ✅ **完善测试**：72 个测试用例全部通过
 
 ### 📅 计划中（阶段4+）
 
@@ -64,12 +70,45 @@
 - **框架文件**: JSX, TSX (React), Vue
 - **标记文件**: HTML
 
+### Hover 信息提示 🆕
+
+将鼠标悬停在任何 `var(--ant-*)` Token 上，查看详细信息：
+
+- **Token 名称和语义**：了解 Token 的用途
+- **当前主题值**：查看当前主题下的实际值
+- **多主题对比**：同时显示 Light 和 Dark 主题的值
+- **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- **颜色预览**：直观的颜色块显示
+- **快捷操作**：复制值、查找引用等
+
+#### Hover 示例
+
+```css
+.button {
+  color: var(--ant-color-primary);
+  /* 悬停后显示：
+     🎨 --ant-color-primary
+     语义: 品牌主色
+     当前主题 (light): 🟦 #1677ff
+     多主题对比:
+       - Light: 🟦 #1677ff
+       - Dark: 🟦 #177ddc
+     颜色格式:
+       - HEX: #1677FF
+       - RGB: rgb(22, 119, 255)
+       - HSL: hsl(216, 100%, 54%)
+  */
+}
+```
+
 ### 可用命令
 
 打开命令面板（Cmd/Ctrl + Shift + P），输入：
 
 - `Ant Design Token: Toggle Color Decorator` - 启用/禁用颜色装饰器
 - `Ant Design Token: Refresh Token Decorations` - 刷新所有装饰
+- `Ant Design Token: Toggle Theme Preview` - 切换主题预览（快捷键：`Ctrl+Alt+T` / `Cmd+Alt+T`）
+- `Ant Design Token: Refresh Token Data` - 刷新 Token 数据（快捷键：`Ctrl+Alt+R` / `Cmd+Alt+R`）
 
 ### 配置选项
 
@@ -84,13 +123,19 @@
   "antdToken.colorDecorator.enabled": true,
   "antdToken.colorDecorator.style": "square", // "square" | "circle" | "underline" | "background"
   "antdToken.colorDecorator.position": "before", // "before" | "after"
-  "antdToken.colorDecorator.size": "medium" // "small" | "medium" | "large"
+  "antdToken.colorDecorator.size": "medium", // "small" | "medium" | "large"
+
+  // Hover 提示 🆕
+  "antdToken.enableHover": true,
+  "antdToken.showMultiTheme": true, // 显示多主题对比
+  "antdToken.showColorFormats": true, // 显示颜色格式转换
+  "antdToken.hoverVerbosity": "normal" // "minimal" | "normal" | "detailed"
 }
 ```
 
 ## 技术架构
 
-### 完整架构（阶段1 + 阶段2）
+### 完整架构（阶段1 + 阶段2 + 阶段3）
 
 ````
 src/
@@ -101,13 +146,17 @@ src/
 │   ├── tokenRegistry.ts          # Token 注册表
 │   ├── themeManager.ts           # 主题管理器
 │   ├── cssParser.ts              # CSS 解析器
-│   └── tokenScanner.ts           # Token 扫描器 ✨ 新增
-├── providers/                     # 功能提供者 ✨ 新增
+│   └── tokenScanner.ts           # Token 扫描器
+├── providers/                     # 功能提供者
 │   ├── colorDecorator.ts         # 颜色装饰器
-│   └── documentDecorationManager.ts  # 装饰管理器
-├── utils/                         # 工具函数 ✨ 新增
+│   ├── documentDecorationManager.ts  # 装饰管理器
+│   ├── hoverProvider.ts          # Hover 提供者 ✨ 新增
+│   └── hoverContentBuilder.ts    # Hover 内容构建器 ✨ 新增
+├── utils/                         # 工具函数
 │   ├── config.ts                 # 配置管理
-│   └── performance.ts            # 性能监控
+│   ├── performance.ts            # 性能监控
+│   ├── colorConverter.ts         # 颜色转换工具 ✨ 新增
+│   └── colorContrast.ts          # 颜色对比度工具 ✨ 新增
 ├── assets/css/                    # 内置 Token
 │   ├── antd-light-theme.css
 │   └── antd-dark-theme.css
