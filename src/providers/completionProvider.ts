@@ -22,7 +22,7 @@ export class AntdTokenCompletionProvider
   // 缓存
   private completionCache = new Map<
     string,
-    { timestamp: number; items: vscode.CompletionItem[] }
+    { timestamp: number; items: vscode.CompletionItem[]; isIncomplete: boolean }
   >();
   private readonly CACHE_TTL = 60000; // 缓存有效期：60秒
 
@@ -33,7 +33,8 @@ export class AntdTokenCompletionProvider
   constructor(
     private tokenRegistry: TokenRegistry,
     private themeManager: ThemeManager,
-    private hoverContentBuilder: HoverContentBuilder
+    private hoverContentBuilder: HoverContentBuilder,
+    private context?: vscode.ExtensionContext
   ) {}
 
   /**
@@ -66,19 +67,25 @@ export class AntdTokenCompletionProvider
     const cached = this.completionCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return new vscode.CompletionList(cached.items, false);
+      return new vscode.CompletionList(cached.items, cached.isIncomplete);
     }
 
     // 获取补全项
-    const items = this.getCompletionItems(document, position, triggerContext);
+    const { items, isIncomplete } = this.getCompletionItems(
+      document,
+      position,
+      triggerContext
+    );
 
     // 缓存结果
     this.completionCache.set(cacheKey, {
       timestamp: Date.now(),
-      items
+      items,
+      isIncomplete
     });
 
-    return new vscode.CompletionList(items, false);
+    // 标记 isIncomplete，确保用户继续输入时会重新调用 provider（避免只在截断的 50 条里做本地过滤）
+    return new vscode.CompletionList(items, isIncomplete);
   }
 
   /**
@@ -88,11 +95,7 @@ export class AntdTokenCompletionProvider
     item: vscode.CompletionItem,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CompletionItem> {
-    // 延迟加载详细文档，提升性能
-    if (item.documentation === undefined && item.label) {
-      const tokenName = this.extractTokenName(item.label as any);
-      item.documentation = this.buildDocumentation(tokenName);
-    }
+    // 不在补全列表里展示 documentation（避免左侧详情框）
     return item;
   }
 
@@ -110,7 +113,7 @@ export class AntdTokenCompletionProvider
     document: vscode.TextDocument,
     position: vscode.Position,
     triggerContext: TriggerContext
-  ): vscode.CompletionItem[] {
+  ): { items: vscode.CompletionItem[]; isIncomplete: boolean } {
     // 获取补全类型
     const completionType = CompletionTrigger.getCompletionType(triggerContext);
 
@@ -128,24 +131,43 @@ export class AntdTokenCompletionProvider
       showRecentFirst: Config.getShowRecentTokensFirst()
     });
 
+    const isIncomplete = tokens.length > this.MAX_COMPLETION_ITEMS;
+
     // 限制数量
     const limitedTokens = tokens.slice(0, this.MAX_COMPLETION_ITEMS);
 
     // 按分类分组（可选）
     const enableCategoryGroups = Config.getEnableCategoryGroups();
     if (enableCategoryGroups) {
-      return this.createGroupedCompletionItems(limitedTokens, completionType);
+      return {
+        items: this.createGroupedCompletionItems(limitedTokens, completionType),
+        isIncomplete
+      };
     }
 
     // 创建补全项
-    return limitedTokens.map((tokenInfo, index) =>
-      CompletionItemBuilder.build({
-        tokenInfo,
-        completionType,
-        sortIndex: index,
-        isRecent: this.recentlyUsedTokens.includes(tokenInfo.name)
-      })
-    );
+    return {
+      items: limitedTokens.map((tokenInfo, index) => {
+        // 调试：打印前几个 token 信息
+        if (index < 3) {
+          console.log(`Token ${index}:`, {
+            name: tokenInfo.name,
+            value: tokenInfo.value,
+            category: tokenInfo.category,
+            theme: tokenInfo.theme
+          });
+        }
+
+        return CompletionItemBuilder.build({
+          tokenInfo,
+          completionType,
+          sortIndex: index,
+          isRecent: this.recentlyUsedTokens.includes(tokenInfo.name),
+          context: this.context
+        });
+      }),
+      isIncomplete
+    };
   }
 
   /**
@@ -246,7 +268,8 @@ export class AntdTokenCompletionProvider
             tokenInfo,
             completionType,
             sortIndex: sortIndex++,
-            isRecent: this.recentlyUsedTokens.includes(tokenInfo.name)
+            isRecent: this.recentlyUsedTokens.includes(tokenInfo.name),
+            context: this.context
           })
         );
       }

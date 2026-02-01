@@ -201,6 +201,11 @@
           "type": "boolean",
           "default": false,
           "description": "按分类分组显示补全项"
+        },
+        "antdToken.showCompletionIcons": {
+          "type": "boolean",
+          "default": true,
+          "description": "在补全项前显示颜色图标"
         }
       }
     }

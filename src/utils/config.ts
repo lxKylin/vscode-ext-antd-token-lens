@@ -134,4 +134,13 @@ export class Config {
       .getConfiguration('antdToken')
       .get('enableCategoryGroups', false);
   }
+
+  /**
+   * 获取是否显示补全图标
+   */
+  static getShowCompletionIcons(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('showCompletionIcons', true);
+  }
 }

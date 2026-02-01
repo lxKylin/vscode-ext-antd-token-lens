@@ -13,6 +13,7 @@ import { DocumentDecorationManager } from './providers/documentDecorationManager
 import { AntdTokenHoverProvider } from './providers/hoverProvider';
 import { AntdTokenCompletionProvider } from './providers/completionProvider';
 import { HoverContentBuilder } from './providers/hoverContentBuilder';
+import { CompletionIcons } from './utils/completionIcons';
 
 let decorationManager: DocumentDecorationManager | undefined;
 let completionProvider: AntdTokenCompletionProvider | undefined;
@@ -85,6 +86,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     console.log('Hover provider registered for supported languages');
 
+    // 初始化补全图标管理器
+    CompletionIcons.initialize(context);
+
     // 创建 HoverContentBuilder（供 CompletionProvider 复用）
     const hoverContentBuilder = new HoverContentBuilder(
       tokenRegistry,
@@ -95,17 +99,25 @@ export function activate(context: vscode.ExtensionContext) {
     completionProvider = new AntdTokenCompletionProvider(
       tokenRegistry,
       themeManager,
-      hoverContentBuilder
+      hoverContentBuilder,
+      context
     );
 
     // 注册 CompletionProvider 到所有支持的语言
+    const completionTriggerCharacters = [
+      '-',
+      '(',
+      // 让用户继续输入（如 --ant-co）时也能触发本扩展补全
+      ...'abcdefghijklmnopqrstuvwxyz'.split(''),
+      ...'0123456789'.split(''),
+      '_'
+    ];
     for (const language of supportedLanguages) {
       context.subscriptions.push(
         vscode.languages.registerCompletionItemProvider(
           { scheme: 'file', language },
           completionProvider,
-          '-', // 触发字符：-
-          '(' // 触发字符：(
+          ...completionTriggerCharacters
         )
       );
     }

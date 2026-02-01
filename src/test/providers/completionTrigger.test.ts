@@ -105,4 +105,20 @@ suite('CompletionTrigger Test Suite', () => {
     // 手动触发应该总是返回 true
     assert.strictEqual(result.shouldComplete, true);
   });
+
+  test('should trigger on incomplete completions inside var()', async () => {
+    const doc = await vscode.workspace.openTextDocument({
+      content: 'color: var(--',
+      language: 'css'
+    });
+
+    const position = new vscode.Position(0, 13);
+    const context = {
+      triggerKind: vscode.CompletionTriggerKind.TriggerForIncompleteCompletions
+    };
+
+    const result = CompletionTrigger.analyze(doc, position, context as any);
+    assert.strictEqual(result.isInsideVar, true);
+    assert.strictEqual(result.shouldComplete, true);
+  });
 });

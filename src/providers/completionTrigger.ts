@@ -111,6 +111,22 @@ export class CompletionTrigger {
       return true;
     }
 
+    // 1.1 VS Code 因为 isIncomplete 触发的补全刷新
+    // 此时 triggerCharacter 可能为空，但用户正在继续输入，应允许继续补全
+    if (
+      context.triggerKind ===
+      vscode.CompletionTriggerKind.TriggerForIncompleteCompletions
+    ) {
+      // 仅在 var() 或 CSS 变量定义位置继续触发，避免在其他文本场景造成噪音
+      if (isInsideVar && /--[\w-]*$/.test(textBeforeCursor)) {
+        return true;
+      }
+      if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
+        return true;
+      }
+      return false;
+    }
+
     // 2. 如果是触发字符触发
     if (context.triggerKind === vscode.CompletionTriggerKind.TriggerCharacter) {
       const triggerChar = context.triggerCharacter;
@@ -126,13 +142,13 @@ export class CompletionTrigger {
       }
     }
 
-    // 3. 如果在 var() 内部且输入了 --ant
-    if (isInsideVar && /--ant-?[\w-]*$/.test(textBeforeCursor)) {
+    // 3. 如果在 var() 内部且输入了自定义属性前缀（--）
+    if (isInsideVar && /--[\w-]*$/.test(textBeforeCursor)) {
       return true;
     }
 
-    // 4. 如果在 CSS 变量定义位置且输入了 --ant
-    if (isCssVarDefinition && /--ant-?[\w-]*$/.test(textBeforeCursor)) {
+    // 4. 如果在 CSS 变量定义位置且输入了自定义属性前缀（--）
+    if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
       return true;
     }
 

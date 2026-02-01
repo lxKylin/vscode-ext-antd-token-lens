@@ -7,6 +7,7 @@ export interface CompletionItemOptions {
   completionType: 'full' | 'name-only';
   sortIndex: number;
   isRecent?: boolean;
+  context?: vscode.ExtensionContext;
 }
 
 /**
@@ -17,7 +18,7 @@ export class CompletionItemBuilder {
    * 构建补全项
    */
   static build(options: CompletionItemOptions): vscode.CompletionItem {
-    const { tokenInfo, completionType, sortIndex, isRecent } = options;
+    const { tokenInfo, completionType, sortIndex, isRecent, context } = options;
 
     const item = new vscode.CompletionItem(
       tokenInfo.name,
@@ -25,10 +26,13 @@ export class CompletionItemBuilder {
     );
 
     // 设置标签
-    item.label = this.buildLabel(tokenInfo, isRecent);
+    item.label = this.buildLabel(tokenInfo, isRecent, context);
 
     // 设置详细信息
-    item.detail = this.buildDetail(tokenInfo);
+    item.detail = this.buildDetail(tokenInfo, context);
+
+    // 不设置 documentation：避免在补全列表左侧弹出详情框
+    item.documentation = undefined;
 
     // 设置插入文本
     item.insertText = this.buildInsertText(tokenInfo, completionType);
@@ -37,7 +41,8 @@ export class CompletionItemBuilder {
     item.filterText = tokenInfo.name;
 
     // 设置排序文本
-    item.sortText = String(sortIndex).padStart(4, '0');
+    // 使用全局最小前缀，确保在 VS Code 合并多个 provider 时优先显示本扩展的候选
+    item.sortText = `\u0000${String(sortIndex).padStart(4, '0')}`;
 
     // 设置命令
     item.command = {
@@ -57,8 +62,10 @@ export class CompletionItemBuilder {
    */
   private static buildLabel(
     tokenInfo: any,
-    isRecent?: boolean
+    isRecent?: boolean,
+    context?: vscode.ExtensionContext
   ): vscode.CompletionItemLabel {
+    let label = tokenInfo.name;
     let description = tokenInfo.description || tokenInfo.category;
 
     // 标记最近使用
@@ -67,45 +74,48 @@ export class CompletionItemBuilder {
     }
 
     return {
-      label: tokenInfo.name,
+      label,
       description
     };
   }
 
   /**
    * 构建详细信息
+   * 对于颜色类型，detail 必须是有效的颜色值，VS Code 会据此显示颜色预览
    */
-  private static buildDetail(tokenInfo: any): string | undefined {
+  private static buildDetail(
+    tokenInfo: any,
+    context?: vscode.ExtensionContext
+  ): string | undefined {
     const detailLevel = Config.getCompletionDetailLevel();
+
+    // 颜色类型优先保证 detail 是可解析的颜色值（用于列表里的颜色预览）
+    if (
+      (tokenInfo.category === 'color' || tokenInfo.category === 'bg') &&
+      tokenInfo.value
+    ) {
+      const formats = ColorConverter.convertToAllFormats(tokenInfo.value);
+      const normalized = formats?.hex ?? tokenInfo.value;
+      if (detailLevel === 'minimal') {
+        return normalized;
+      }
+    }
 
     if (detailLevel === 'minimal') {
       return undefined;
     }
 
-    // 显示当前主题的值
-    const currentTheme = tokenInfo.currentTheme || 'light';
-    const value = tokenInfo.themes?.[currentTheme];
-
-    if (!value) {
-      return undefined;
+    // 对于颜色类型，必须返回有效的颜色值
+    if (
+      (tokenInfo.category === 'color' || tokenInfo.category === 'bg') &&
+      tokenInfo.value
+    ) {
+      const formats = ColorConverter.convertToAllFormats(tokenInfo.value);
+      return formats?.hex ?? tokenInfo.value;
     }
 
-    if (detailLevel === 'normal') {
-      return value;
-    }
-
-    // detailed 模式：显示更多信息
-    let detail = value;
-
-    // 如果是颜色，添加格式转换
-    if (ColorConverter.isValidColor(value)) {
-      const formats = ColorConverter.convertToAllFormats(value);
-      if (formats) {
-        detail += ` | rgb: ${formats.rgb}`;
-      }
-    }
-
-    return detail;
+    // 其他类型直接返回 value
+    return tokenInfo.value;
   }
 
   /**
