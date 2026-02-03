@@ -237,13 +237,13 @@ themeManager.onThemeChange((theme) => {
 - [ ] 阶段4：自动补全
 - [ ] 阶段5：自定义 Token
 
-详见 [docs/开发计划.md](docs/开发计划.md)
+详见 docs/开发计划.md
 
 ## 开发文档
 
-- [需求说明](docs/需求说明.md)
-- [开发计划](docs/开发计划.md)
-- [阶段1完成总结](docs/阶段1-完成总结.md)
+- 需求说明：docs/需求说明.md
+- 开发计划：docs/开发计划.md
+- 阶段1完成总结：docs/阶段1-完成总结.md
 
 ## License
 

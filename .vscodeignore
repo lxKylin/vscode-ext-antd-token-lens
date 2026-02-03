@@ -1,11 +1,19 @@
 .vscode/**
 .vscode-test/**
+.github/**
+docs/**
 src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
+esbuild.js
+pnpm-lock.yaml
+test-*.css
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
 **/*.ts
 **/.vscode-test.*
+
+# compiled test output is not needed at runtime
+out/test/**

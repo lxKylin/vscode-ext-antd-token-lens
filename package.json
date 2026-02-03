@@ -1,8 +1,10 @@
 {
   "name": "ant-design-token-lens",
-  "displayName": "ant-design-token-lens",
+  "publisher": "lxKylin",
+  "displayName": "Ant Design Token Lens",
   "description": "一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。",
   "version": "0.0.2",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.108.1"
   },
@@ -12,6 +14,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "icon": "./images/preview.png",
   "main": "./out/extension.js",
   "contributes": {
     "menus": {
@@ -215,12 +218,21 @@
     "compile": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "package": "node esbuild.js --production",
+    "vsix": "pnpm run package && vsce package --no-dependencies --allow-missing-repository --skip-license",
     "compile-tests": "tsc -p . -outDir out",
     "watch-tests": "tsc -p . -outDir out -w",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test"
+  },
+  "bugs": {
+    "url": "https://github.com/lxKylin/vscode-ext-antd-token-lens/issues"
+  },
+  "homepage": "https://github.com/lxKylin/vscode-ext-antd-token-lens",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lxKylin/vscode-ext-antd-token-lens.git"
   },
   "devDependencies": {
     "@types/color": "^4.2.0",

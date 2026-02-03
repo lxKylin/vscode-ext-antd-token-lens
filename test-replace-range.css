@@ -1,0 +1,21 @@
+/* 测试补全替换范围 */
+
+.test-case-1 {
+  /* 输入 ---- 然后选择补全项，应该替换掉 ---- */
+  color: 'var()';
+}
+
+.test-case-2 {
+  /* 输入 --ant- 然后选择补全项，应该替换掉 --ant- */
+  background: 'var()';
+}
+
+.test-case-3 {
+  /* 输入 --a 然后选择补全项，应该替换掉 --a */
+  border-color: 'var()';
+}
+
+.test-case-4 {
+  /* 在 var() 内输入 ---- 然后选择补全项，应该替换掉 ---- */
+  color: var();
+}
