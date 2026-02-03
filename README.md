@@ -229,22 +229,6 @@ themeManager.onThemeChange((theme) => {
 });
 ```
 
-## 开发进度
-
-- [x] 阶段1：Token 数据层（已完成）
-- [ ] 阶段2：颜色可视化
-- [ ] 阶段3：Hover 提示
-- [ ] 阶段4：自动补全
-- [ ] 阶段5：自定义 Token
-
-详见 docs/开发计划.md
-
-## 开发文档
-
-- 需求说明：docs/需求说明.md
-- 开发计划：docs/开发计划.md
-- 阶段1完成总结：docs/阶段1-完成总结.md
-
 ## License
 
 MIT
