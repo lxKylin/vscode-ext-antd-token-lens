@@ -5,6 +5,7 @@ export interface TriggerContext {
   isCssVarDefinition: boolean; // 是否在 CSS 变量定义位置
   filterText: string; // 已输入的过滤文本
   shouldComplete: boolean; // 是否应该触发补全
+  replaceRange?: vscode.Range; // 需要替换的文本范围
 }
 
 /**
@@ -31,6 +32,9 @@ export class CompletionTrigger {
     // 提取过滤文本
     const filterText = this.extractFilterText(textBeforeCursor);
 
+    // 计算替换范围
+    const replaceRange = this.calculateReplaceRange(position, textBeforeCursor);
+
     // 判断是否应该触发补全
     const shouldComplete = this.shouldTriggerCompletion(
       textBeforeCursor,
@@ -43,7 +47,8 @@ export class CompletionTrigger {
       isInsideVar,
       isCssVarDefinition,
       filterText,
-      shouldComplete
+      shouldComplete,
+      replaceRange
     };
   }
 
@@ -95,6 +100,31 @@ export class CompletionTrigger {
   private static extractFilterText(text: string): string {
     const match = text.match(/--(?:ant-?)?[\w-]*$/);
     return match ? match[0] : '';
+  }
+
+  /**
+   * 计算替换范围
+   * 当用户输入 ---- 或 --ant- 等内容时，需要替换整个已输入的部分
+   */
+  private static calculateReplaceRange(
+    position: vscode.Position,
+    textBeforeCursor: string
+  ): vscode.Range | undefined {
+    // 匹配已输入的 CSS 变量名称部分（包括 -- 前缀和后续字符）
+    const match = textBeforeCursor.match(/--(?:ant-?)?[\w-]*$/);
+
+    if (!match) {
+      return undefined;
+    }
+
+    const matchedText = match[0];
+    const startCharacter = position.character - matchedText.length;
+    const endCharacter = position.character;
+
+    return new vscode.Range(
+      new vscode.Position(position.line, startCharacter),
+      new vscode.Position(position.line, endCharacter)
+    );
   }
 
   /**

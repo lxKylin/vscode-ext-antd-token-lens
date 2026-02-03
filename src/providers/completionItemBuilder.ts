@@ -8,6 +8,7 @@ export interface CompletionItemOptions {
   sortIndex: number;
   isRecent?: boolean;
   context?: vscode.ExtensionContext;
+  replaceRange?: vscode.Range;
 }
 
 /**
@@ -18,7 +19,14 @@ export class CompletionItemBuilder {
    * 构建补全项
    */
   static build(options: CompletionItemOptions): vscode.CompletionItem {
-    const { tokenInfo, completionType, sortIndex, isRecent, context } = options;
+    const {
+      tokenInfo,
+      completionType,
+      sortIndex,
+      isRecent,
+      context,
+      replaceRange
+    } = options;
 
     const item = new vscode.CompletionItem(
       tokenInfo.name,
@@ -36,6 +44,11 @@ export class CompletionItemBuilder {
 
     // 设置插入文本
     item.insertText = this.buildInsertText(tokenInfo, completionType);
+
+    // 设置替换范围（确保替换用户已输入的部分，而不是追加）
+    if (replaceRange) {
+      item.range = replaceRange;
+    }
 
     // 设置过滤文本
     item.filterText = tokenInfo.name;

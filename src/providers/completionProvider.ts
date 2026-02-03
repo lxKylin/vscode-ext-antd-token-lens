@@ -140,7 +140,11 @@ export class AntdTokenCompletionProvider
     const enableCategoryGroups = Config.getEnableCategoryGroups();
     if (enableCategoryGroups) {
       return {
-        items: this.createGroupedCompletionItems(limitedTokens, completionType),
+        items: this.createGroupedCompletionItems(
+          limitedTokens,
+          completionType,
+          triggerContext.replaceRange
+        ),
         isIncomplete
       };
     }
@@ -163,7 +167,8 @@ export class AntdTokenCompletionProvider
           completionType,
           sortIndex: index,
           isRecent: this.recentlyUsedTokens.includes(tokenInfo.name),
-          context: this.context
+          context: this.context,
+          replaceRange: triggerContext.replaceRange
         });
       }),
       isIncomplete
@@ -246,7 +251,8 @@ export class AntdTokenCompletionProvider
    */
   private createGroupedCompletionItems(
     tokens: any[],
-    completionType: 'full' | 'name-only'
+    completionType: 'full' | 'name-only',
+    replaceRange?: vscode.Range
   ): vscode.CompletionItem[] {
     const items: vscode.CompletionItem[] = [];
     const groups = CompletionCategories.groupByCategory(tokens);
@@ -269,7 +275,8 @@ export class AntdTokenCompletionProvider
             completionType,
             sortIndex: sortIndex++,
             isRecent: this.recentlyUsedTokens.includes(tokenInfo.name),
-            context: this.context
+            context: this.context,
+            replaceRange
           })
         );
       }
