@@ -27,10 +27,6 @@
     },
     "commands": [
       {
-        "command": "antd-css-tokens.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "antdToken.refreshDecorations",
         "title": "Refresh Token Decorations",
         "category": "Ant Design Token"
