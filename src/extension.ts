@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log(
-    'Congratulations, your extension "antd-css-tokens" is now active!'
+    'Congratulations, your extension "ant-design-token-lens" is now active!'
   );
 
   try {
@@ -72,7 +72,8 @@ export function activate(context: vscode.ExtensionContext) {
       'typescript',
       'typescriptreact',
       'vue',
-      'html'
+      'html',
+      'markdown'
     ];
 
     for (const language of supportedLanguages) {

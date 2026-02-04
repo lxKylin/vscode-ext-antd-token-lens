@@ -37,7 +37,8 @@ export class TokenScanner {
     'typescript',
     'typescriptreact',
     'vue',
-    'html'
+    'html',
+    'markdown'
   ];
 
   /** 扫描结果缓存 */
