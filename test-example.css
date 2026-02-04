@@ -13,6 +13,7 @@
 .example {
   /* 品牌主色 */
   color: var(--ant-color-primary);
+  color: var(--ant-color-info);
 
   /* 成功状态色 */
   background-color: var(--ant-color-success);

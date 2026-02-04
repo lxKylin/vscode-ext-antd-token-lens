@@ -3,7 +3,7 @@
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
   "description": "一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "engines": {
     "vscode": "^1.108.1"
