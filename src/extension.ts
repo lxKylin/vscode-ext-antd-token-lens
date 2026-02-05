@@ -106,7 +106,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 注册 CompletionProvider 到所有支持的语言
     const completionTriggerCharacters = [
-      '-',
       '(',
       // 让用户继续输入（如 --ant-co）时也能触发本扩展补全
       ...'abcdefghijklmnopqrstuvwxyz'.split(''),

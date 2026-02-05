@@ -166,9 +166,16 @@ export class CompletionTrigger {
         return true;
       }
 
-      // 输入 - 且前面已经有 -
-      if (triggerChar === '-' && /--?$/.test(textBeforeCursor)) {
-        return true;
+      // 输入字母、数字、下划线时，检查是否在有效的上下文中
+      if (triggerChar && /[a-z0-9_]/i.test(triggerChar)) {
+        // 在 var() 内且已有 -- 前缀
+        if (isInsideVar && /--[\w-]*$/.test(textBeforeCursor)) {
+          return true;
+        }
+        // 在 CSS 变量定义位置且已有 -- 前缀
+        if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
+          return true;
+        }
       }
     }
 
