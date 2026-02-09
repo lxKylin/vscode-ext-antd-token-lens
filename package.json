@@ -60,6 +60,21 @@
         "command": "antdToken.clearRecentTokens",
         "title": "清空最近使用的 Token",
         "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.reloadSources",
+        "title": "重新加载 Token 数据源",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.showSources",
+        "title": "查看 Token 数据源",
+        "category": "Ant Design Token"
+      },
+      {
+        "command": "antdToken.rescanTokenFiles",
+        "title": "重新扫描 Token 文件",
+        "category": "Ant Design Token"
       }
     ],
     "keybindings": [
@@ -205,6 +220,80 @@
           "type": "boolean",
           "default": true,
           "description": "在补全项前显示颜色图标"
+        },
+        "antdToken.sources": {
+          "type": "array",
+          "default": [],
+          "description": "自定义 Token 数据源配置",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "css",
+                  "less",
+                  "scss",
+                  "javascript",
+                  "json"
+                ],
+                "description": "数据源类型"
+              },
+              "filePath": {
+                "type": "string",
+                "description": "文件路径（相对于工作区根目录）"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "是否启用此数据源"
+              },
+              "priority": {
+                "type": "number",
+                "description": "优先级（数字越小越优先）"
+              },
+              "watch": {
+                "type": "boolean",
+                "default": true,
+                "description": "是否监听文件变更"
+              }
+            },
+            "required": [
+              "type",
+              "filePath"
+            ]
+          },
+          "examples": [
+            [
+              {
+                "type": "css",
+                "filePath": "./src/styles/tokens.css",
+                "priority": 10
+              },
+              {
+                "type": "javascript",
+                "filePath": "./theme.config.js",
+                "priority": 5
+              }
+            ]
+          ]
+        },
+        "antdToken.enableAutoScan": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否自动扫描项目中的 Token 文件"
+        },
+        "antdToken.autoScanPatterns": {
+          "type": "array",
+          "default": [
+            "**/theme.config.{js,ts}",
+            "**/tokens.{css,less,scss}",
+            "**/*.theme.{css,less,scss}"
+          ],
+          "description": "自动扫描的文件匹配模式",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

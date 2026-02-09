@@ -143,4 +143,43 @@ export class Config {
       .getConfiguration('antdToken')
       .get('showCompletionIcons', true);
   }
+
+  /**
+   * 获取自定义 Token 数据源配置
+   */
+  static getCustomTokenSources(): any[] {
+    const config = vscode.workspace.getConfiguration('antdToken');
+    return config.get<any[]>('sources', []);
+  }
+
+  /**
+   * 是否启用自动扫描项目 Token 文件
+   */
+  static getEnableAutoScan(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('enableAutoScan', true);
+  }
+
+  /**
+   * 获取自动扫描的文件匹配模式
+   */
+  static getAutoScanPatterns(): string[] {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get('autoScanPatterns', [
+        '**/theme.config.{js,ts}',
+        '**/tokens.{css,less,scss}',
+        '**/*.theme.{css,less,scss}'
+      ]);
+  }
+
+  /**
+   * 通用的 get 方法
+   */
+  private static get<T>(key: string, defaultValue: T): T {
+    return vscode.workspace
+      .getConfiguration('antdToken')
+      .get(key, defaultValue);
+  }
 }

@@ -109,3 +109,93 @@ export function parseCSSVariablesFromSelectors(
     value
   }));
 }
+
+/**
+ * CSS Parser 类（支持变量提取和引用解析）
+ */
+export class CSSParser {
+  /**
+   * 从 CSS 内容中提取所有 CSS 变量
+   */
+  extractVariables(content: string): Record<string, string> {
+    const variables: Record<string, string> = {};
+
+    // 移除 CSS 注释
+    const contentWithoutComments = content.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // 匹配 :root 或其他选择器中的 CSS 变量定义
+    const ruleRegex = /([^{}]+)\{([^}]*)\}/g;
+    let ruleMatch;
+
+    while ((ruleMatch = ruleRegex.exec(contentWithoutComments)) !== null) {
+      const selector = ruleMatch[1].trim();
+      const declarations = ruleMatch[2];
+
+      // 只处理 :root 或包含 data-theme 的选择器
+      if (
+        selector === ':root' ||
+        selector.includes('[data-theme') ||
+        selector.includes('.theme-') ||
+        selector.includes('.dark') ||
+        selector.includes('.light')
+      ) {
+        // 提取变量定义
+        const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+        let varMatch;
+
+        while ((varMatch = varRegex.exec(declarations)) !== null) {
+          const varName = '--' + varMatch[1];
+          const varValue = varMatch[2].trim();
+
+          // 暂时保存所有变量（包括引用其他变量的）
+          variables[varName] = varValue;
+        }
+      }
+    }
+
+    return variables;
+  }
+
+  /**
+   * 解析 CSS 变量的引用链
+   */
+  resolveVariableReferences(
+    variables: Record<string, string>
+  ): Record<string, string> {
+    const resolved: Record<string, string> = {};
+    const maxDepth = 10; // 防止循环引用
+
+    for (const [name, value] of Object.entries(variables)) {
+      resolved[name] = this.resolveValue(value, variables, 0, maxDepth);
+    }
+
+    return resolved;
+  }
+
+  private resolveValue(
+    value: string,
+    variables: Record<string, string>,
+    depth: number,
+    maxDepth: number
+  ): string {
+    if (depth >= maxDepth) {
+      return value;
+    }
+
+    // 匹配 var(--xxx) 引用
+    const varRefRegex = /var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/g;
+
+    return value.replace(varRefRegex, (match, refName, fallback) => {
+      const refValue = variables[refName];
+
+      if (refValue) {
+        // 递归解析引用
+        return this.resolveValue(refValue, variables, depth + 1, maxDepth);
+      } else if (fallback) {
+        return fallback.trim();
+      } else {
+        return match; // 保持原样
+      }
+    });
+  }
+}

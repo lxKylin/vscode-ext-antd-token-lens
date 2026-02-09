@@ -5,6 +5,8 @@ import {
   initializeTokenRegistry,
   tokenRegistry,
   themeManager,
+  getSourceManager,
+  getAutoScanner,
   dispose
 } from './tokenManager';
 import { TokenScanner } from './tokenManager/tokenScanner';
@@ -20,7 +22,7 @@ let completionProvider: AntdTokenCompletionProvider | undefined;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log(
@@ -28,12 +30,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   try {
-    // 初始化 Token 管理模块
-    initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
+    // 初始化 Token 管理模块（现在使用 SourceManager）
+    await initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
     console.log('Token Registry initialized successfully');
     console.log(`- Total tokens: ${tokenRegistry.size}`);
     console.log(`- Unique token names: ${tokenRegistry.uniqueSize}`);
     console.log(`- Current theme: ${themeManager.getCurrentTheme()}`);
+
+    // 获取数据源管理器
+    const sourceManager = getSourceManager();
 
     // 创建装饰器
     const scanner = new TokenScanner();
@@ -48,6 +53,21 @@ export function activate(context: vscode.ExtensionContext) {
         decorationManager?.refresh();
       })
     );
+
+    // 监听数据源变化，刷新装饰和补全
+    if (sourceManager) {
+      context.subscriptions.push(
+        sourceManager.onDidSourcesChange(() => {
+          console.log('[Extension] Sources changed, refreshing...');
+
+          // 刷新所有编辑器的装饰
+          decorationManager?.refresh();
+
+          // 清空补全缓存
+          completionProvider?.clearCache();
+        })
+      );
+    }
 
     // 注册到上下文
     context.subscriptions.push(decorationManager);
@@ -257,9 +277,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 命令：刷新 Token 数据
   context.subscriptions.push(
-    vscode.commands.registerCommand('antdToken.refreshTokens', () => {
-      // 重新初始化 Token 注册表
-      initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
+    vscode.commands.registerCommand('antdToken.refreshTokens', async () => {
+      // 使用 SourceManager 重新加载数据
+      const sourceManager = getSourceManager();
+      if (sourceManager) {
+        await sourceManager.reload();
+      }
 
       // 刷新所有装饰
       decorationManager?.refresh();
@@ -268,6 +291,55 @@ export function activate(context: vscode.ExtensionContext) {
       completionProvider?.clearCache();
 
       vscode.window.showInformationMessage('Token 数据已刷新');
+    })
+  );
+
+  // 命令：重新加载 Token 数据源
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.reloadSources', async () => {
+      const sourceManager = getSourceManager();
+      if (sourceManager) {
+        await sourceManager.reload();
+        vscode.window.showInformationMessage('Token 数据源已重新加载');
+      } else {
+        vscode.window.showWarningMessage('数据源管理器未初始化');
+      }
+    })
+  );
+
+  // 命令：查看 Token 数据源
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.showSources', () => {
+      const sourceManager = getSourceManager();
+      if (!sourceManager) {
+        vscode.window.showWarningMessage('数据源管理器未初始化');
+        return;
+      }
+
+      const sources = sourceManager.getSourcesInfo();
+      const items = sources.map((s) => ({
+        label: s.description,
+        detail: `类型: ${s.type} | 优先级: ${s.priority} | ${s.enabled ? '已启用' : '已禁用'}`,
+        description: s.id
+      }));
+
+      vscode.window.showQuickPick(items, {
+        title: 'Token 数据源',
+        placeHolder: '当前加载的数据源列表'
+      });
+    })
+  );
+
+  // 命令：重新扫描 Token 文件
+  context.subscriptions.push(
+    vscode.commands.registerCommand('antdToken.rescanTokenFiles', async () => {
+      const autoScanner = getAutoScanner();
+      if (autoScanner) {
+        await autoScanner.scan();
+        vscode.window.showInformationMessage('Token 文件扫描完成');
+      } else {
+        vscode.window.showWarningMessage('自动扫描器未初始化');
+      }
     })
   );
 
