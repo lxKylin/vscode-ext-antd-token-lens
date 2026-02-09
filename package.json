@@ -233,9 +233,7 @@
                 "enum": [
                   "css",
                   "less",
-                  "scss",
-                  "javascript",
-                  "json"
+                  "scss"
                 ],
                 "description": "数据源类型"
               },
@@ -269,11 +267,6 @@
                 "type": "css",
                 "filePath": "./src/styles/tokens.css",
                 "priority": 10
-              },
-              {
-                "type": "javascript",
-                "filePath": "./theme.config.js",
-                "priority": 5
               }
             ]
           ]
@@ -286,7 +279,6 @@
         "antdToken.autoScanPatterns": {
           "type": "array",
           "default": [
-            "**/theme.config.{js,ts}",
             "**/tokens.{css,less,scss}",
             "**/*.theme.{css,less,scss}"
           ],

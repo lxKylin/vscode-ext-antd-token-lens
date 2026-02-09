@@ -16,12 +16,13 @@ export interface TokenMatch {
 
 /**
  * Token 扫描器
- * 负责从文档中识别并提取所有 var(--ant-*) 格式的 Token
+ * 负责从文档中识别并提取所有 var(--*) 格式的 CSS 变量
+ * 支持任意前缀的 CSS 变量，包括 --ant-、--el-、--my- 等
  */
 export class TokenScanner {
-  /** 匹配 var(--ant-xxx) 格式的正则表达式 */
+  /** 匹配 var(--xxx) 格式的正则表达式，支持任意前缀 */
   private static readonly CSS_VAR_PATTERN =
-    /var\(\s*(--ant-[a-zA-Z0-9-]+)\s*(?:,\s*[^)]+)?\)/g;
+    /var\(\s*(--[a-zA-Z0-9-]+)\s*(?:,\s*[^)]+)?\)/g;
 
   /** CSS 注释匹配正则 */
   private static readonly COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;

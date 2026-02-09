@@ -43,6 +43,20 @@ export class ColorDecorator {
         this.themeManager.getCurrentTheme()
       );
 
+      // 调试日志：查看匹配情况
+      if (match.tokenName.includes('--el-')) {
+        console.log(
+          '[ColorDecorator] Token:',
+          match.tokenName,
+          'Found:',
+          !!tokenInfo,
+          'IsColor:',
+          tokenInfo?.isColor,
+          'Value:',
+          tokenInfo?.value
+        );
+      }
+
       if (tokenInfo && tokenInfo.isColor) {
         const color = tokenInfo.value;
 

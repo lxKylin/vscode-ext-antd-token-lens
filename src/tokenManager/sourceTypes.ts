@@ -11,9 +11,7 @@ export enum SourceType {
   BUILTIN = 'builtin', // 内置 Ant Design Token
   CSS = 'css', // CSS 文件
   LESS = 'less', // Less 文件
-  SCSS = 'scss', // Scss 文件
-  JAVASCRIPT = 'javascript', // JavaScript/TypeScript 配置
-  JSON = 'json' // JSON 配置文件
+  SCSS = 'scss' // Scss 文件
 }
 
 /**

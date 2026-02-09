@@ -85,10 +85,6 @@ export class AutoScanner implements vscode.Disposable {
     let sourceType: SourceType;
     if (['.css', '.less', '.scss', '.sass'].includes(ext)) {
       sourceType = SourceType.CSS;
-    } else if (['.js', '.ts', '.mjs', '.cjs'].includes(ext)) {
-      sourceType = SourceType.JAVASCRIPT;
-    } else if (ext === '.json') {
-      sourceType = SourceType.JSON;
     } else {
       return; // 不支持的文件类型
     }
@@ -137,12 +133,6 @@ export class AutoScanner implements vscode.Disposable {
         case SourceType.CSS:
           // 检查是否包含 CSS 变量定义
           return /--[\w-]+\s*:\s*[^;]+;/.test(content);
-
-        case SourceType.JAVASCRIPT:
-          // 检查是否包含 theme.token 或类似结构
-          return (
-            /token\s*:\s*\{/.test(content) || /theme\s*:\s*\{/.test(content)
-          );
 
         default:
           return false;

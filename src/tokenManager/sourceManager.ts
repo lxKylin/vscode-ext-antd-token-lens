@@ -14,7 +14,6 @@ import {
 } from './sourceTypes';
 import { BuiltinTokenSource } from './sources/builtinSource';
 import { CSSTokenSource } from './sources/cssSource';
-import { JavaScriptTokenSource } from './sources/jsSource';
 import { Config } from '../utils/config';
 
 export class SourceManager implements vscode.Disposable {
@@ -231,9 +230,6 @@ export class SourceManager implements vscode.Disposable {
       case SourceType.LESS:
       case SourceType.SCSS:
         return new CSSTokenSource(config);
-
-      case SourceType.JAVASCRIPT:
-        return new JavaScriptTokenSource(config);
 
       default:
         console.warn(`[SourceManager] Unsupported source type: ${config.type}`);

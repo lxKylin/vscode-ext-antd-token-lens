@@ -168,7 +168,6 @@ export class Config {
     return vscode.workspace
       .getConfiguration('antdToken')
       .get('autoScanPatterns', [
-        '**/theme.config.{js,ts}',
         '**/tokens.{css,less,scss}',
         '**/*.theme.{css,less,scss}'
       ]);
