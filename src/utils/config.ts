@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+// 定义类型别名
+type HoverVerbosity = 'minimal' | 'normal' | 'detailed';
+type CompletionDetailLevel = 'minimal' | 'normal' | 'detailed';
 
 /**
  * 配置管理工具
@@ -72,10 +75,10 @@ export class Config {
   /**
    * 获取 Hover 详细程度
    */
-  static getHoverVerbosity(): 'minimal' | 'normal' | 'detailed' {
+  static getHoverVerbosity(): HoverVerbosity {
     return vscode.workspace
       .getConfiguration('antdToken')
-      .get('hoverVerbosity', 'normal') as 'minimal' | 'normal' | 'detailed';
+      .get('hoverVerbosity', 'normal') as HoverVerbosity;
   }
 
   /**
@@ -90,7 +93,7 @@ export class Config {
   /**
    * 获取补全项详细程度
    */
-  static getCompletionDetailLevel(): 'minimal' | 'normal' | 'detailed' {
+  static getCompletionDetailLevel(): CompletionDetailLevel {
     return vscode.workspace
       .getConfiguration('antdToken')
       .get('completionDetailLevel', 'normal') as

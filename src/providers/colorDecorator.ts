@@ -32,8 +32,6 @@ export class ColorDecorator {
     // 先清除旧装饰
     this.clear(editor);
 
-    const style = Config.getDecoratorStyle();
-
     // 按颜色分组 Token
     const colorGroups = new Map<string, vscode.Range[]>();
 

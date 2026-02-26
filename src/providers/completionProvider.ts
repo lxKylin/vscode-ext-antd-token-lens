@@ -19,7 +19,7 @@ export class AntdTokenCompletionProvider
   private readonly MAX_COMPLETION_ITEMS = 50;
 
   // 缓存
-  private completionCache = new Map<
+  private readonly completionCache = new Map<
     string,
     { timestamp: number; items: vscode.CompletionItem[]; isIncomplete: boolean }
   >();
@@ -30,10 +30,10 @@ export class AntdTokenCompletionProvider
   private lastFilteredTokens: any[] = [];
 
   constructor(
-    private tokenRegistry: TokenRegistry,
-    private themeManager: ThemeManager,
-    private hoverContentBuilder: HoverContentBuilder,
-    private context?: vscode.ExtensionContext
+    private readonly tokenRegistry: TokenRegistry,
+    private readonly themeManager: ThemeManager,
+    private readonly hoverContentBuilder: HoverContentBuilder,
+    private readonly context?: vscode.ExtensionContext
   ) {}
 
   /**

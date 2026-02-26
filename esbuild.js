@@ -26,8 +26,8 @@ const esbuildProblemMatcherPlugin = {
   }
 };
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Plugin to copy assets
 const copyAssetsPlugin = {
@@ -99,7 +99,9 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+try {
+  await main();
+} catch (e) {
   console.error(e);
   process.exit(1);
-});
+}

@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import { TokenInfo, TokenRegistry } from '@/tokenManager/tokenRegistry';
 import { ThemeManager } from '@/tokenManager/themeManager';
 import { Config } from '@/utils/config';
-import { ColorConverter, ColorFormats } from '@/utils/colorConverter';
-import { ColorContrast } from '@/utils/colorContrast';
+import { ColorConverter } from '@/utils/colorConverter';
 
 /**
  * Hover 内容构建器
@@ -310,10 +309,8 @@ export class HoverContentBuilder {
    */
   private getSourceLabel(source: string): string {
     const labels: Record<string, string> = {
-      builtin: 'Ant Design 官方',
-      custom: '自定义',
-      css: 'CSS 文件',
-      js: 'JS/TS 文件'
+      builtin: 'Ant Design',
+      custom: '自定义'
     };
     return labels[source] || source;
   }
