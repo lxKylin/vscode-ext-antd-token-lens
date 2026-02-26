@@ -308,7 +308,7 @@ export class AntdTokenCompletionProvider
    * 生成缓存键
    */
   private getCacheKey(triggerContext: TriggerContext): string {
-    return `${triggerContext.filterText}|${triggerContext.isInsideVar}|${triggerContext.isCssVarDefinition}`;
+    return `${triggerContext.filterText}|${triggerContext.isInsideVar}|${triggerContext.isCssVarDefinition}|${triggerContext.isInsideTailwindClass}`;
   }
 
   /**

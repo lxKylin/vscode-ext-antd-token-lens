@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export interface TriggerContext {
   isInsideVar: boolean; // 是否在 var() 内部
   isCssVarDefinition: boolean; // 是否在 CSS 变量定义位置
+  isInsideTailwindClass: boolean; // 是否在 Tailwind 类名中（如 bg-(--xx)）
   filterText: string; // 已输入的过滤文本
   shouldComplete: boolean; // 是否应该触发补全
   replaceRange?: vscode.Range; // 需要替换的文本范围
@@ -29,6 +30,9 @@ export class CompletionTrigger {
     // 检查是否在 CSS 变量定义位置
     const isCssVarDefinition = this.isCssVariableDefinition(document, position);
 
+    // 检查是否在 Tailwind 类名中（如 bg-(--xx)）
+    const isInsideTailwindClass = this.isInsideTailwindClass(textBeforeCursor);
+
     // 提取过滤文本
     const filterText = this.extractFilterText(textBeforeCursor);
 
@@ -40,12 +44,14 @@ export class CompletionTrigger {
       textBeforeCursor,
       context,
       isInsideVar,
-      isCssVarDefinition
+      isCssVarDefinition,
+      isInsideTailwindClass
     );
 
     return {
       isInsideVar,
       isCssVarDefinition,
+      isInsideTailwindClass,
       filterText,
       shouldComplete,
       replaceRange
@@ -95,16 +101,38 @@ export class CompletionTrigger {
   }
 
   /**
+   * 检查是否在 Tailwind 类名中（如 bg-(--xx)）
+   * 匹配格式：[属性-(--变量)] 或 [属性-[...-(--变量)...]]
+   */
+  private static isInsideTailwindClass(text: string): boolean {
+    // 匹配 [(...]( 之后但 ) 未闭合的位置，且其中包含 --
+    // 例如：bg-(--primary  或  hover:bg-[...-(--primary
+    const tailwindMatch = text.match(/\([^)]*--[\w-]*$/);
+    return tailwindMatch !== null;
+  }
+
+  /**
    * 提取过滤文本
+   * 支持两种格式：
+   * 1. var(--xxx) 格式：--color-primary
+   * 2. Tailwind 类中的 (--xxx) 格式：bg-(--primary)
    */
   private static extractFilterText(text: string): string {
+    // 先尝试匹配标准的 -- 前缀格式
     const match = text.match(/--(?:ant-?)?[\w-]*$/);
-    return match ? match[0] : '';
+    if (match) {
+      return match[0];
+    }
+
+    // 返回空字符串如果没有匹配
+    return '';
   }
 
   /**
    * 计算替换范围
-   * 当用户输入 ---- 或 --ant- 等内容时，需要替换整个已输入的部分
+   * 支持两种场景：
+   * 1. var(--xxx) 中 -- 开始到末尾的部分
+   * 2. Tailwind 类中 bg-(--xxx) 中 -- 开始到末尾的部分
    */
   private static calculateReplaceRange(
     position: vscode.Position,
@@ -134,7 +162,8 @@ export class CompletionTrigger {
     textBeforeCursor: string,
     context: vscode.CompletionContext,
     isInsideVar: boolean,
-    isCssVarDefinition: boolean
+    isCssVarDefinition: boolean,
+    isInsideTailwindClass: boolean
   ): boolean {
     // 1. 如果是手动触发（Ctrl+Space），总是触发
     if (context.triggerKind === vscode.CompletionTriggerKind.Invoke) {
@@ -147,11 +176,14 @@ export class CompletionTrigger {
       context.triggerKind ===
       vscode.CompletionTriggerKind.TriggerForIncompleteCompletions
     ) {
-      // 仅在 var() 或 CSS 变量定义位置继续触发，避免在其他文本场景造成噪音
+      // 仅在 var()、CSS 变量定义位置或 Tailwind 类中继续触发
       if (isInsideVar && /--[\w-]*$/.test(textBeforeCursor)) {
         return true;
       }
       if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
+        return true;
+      }
+      if (isInsideTailwindClass && /--[\w-]*$/.test(textBeforeCursor)) {
         return true;
       }
       return false;
@@ -166,14 +198,23 @@ export class CompletionTrigger {
         return true;
       }
 
+      // 输入 ( 且符合 Tailwind 类模式（如 bg-(）
+      if (triggerChar === '(' && /[\w-]+\($/.test(textBeforeCursor)) {
+        return true;
+      }
+
       // 输入字母、数字、下划线时，检查是否在有效的上下文中
-      if (triggerChar && /[a-z0-9_]/i.test(triggerChar)) {
+      if (triggerChar && /[a-z0-9_-]/i.test(triggerChar)) {
         // 在 var() 内且已有 -- 前缀
         if (isInsideVar && /--[\w-]*$/.test(textBeforeCursor)) {
           return true;
         }
         // 在 CSS 变量定义位置且已有 -- 前缀
         if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
+          return true;
+        }
+        // 在 Tailwind 类中且已有 -- 前缀
+        if (isInsideTailwindClass && /--[\w-]*$/.test(textBeforeCursor)) {
           return true;
         }
       }
@@ -186,6 +227,11 @@ export class CompletionTrigger {
 
     // 4. 如果在 CSS 变量定义位置且输入了自定义属性前缀（--）
     if (isCssVarDefinition && /--[\w-]*$/.test(textBeforeCursor)) {
+      return true;
+    }
+
+    // 5. 如果在 Tailwind 类中且输入了自定义属性前缀（--）
+    if (isInsideTailwindClass && /--[\w-]*$/.test(textBeforeCursor)) {
       return true;
     }
 
@@ -203,6 +249,11 @@ export class CompletionTrigger {
 
     // 在 CSS 变量定义位置，只插入名称
     if (context.isCssVarDefinition) {
+      return 'name-only';
+    }
+
+    // 在 Tailwind 类中，只插入名称
+    if (context.isInsideTailwindClass) {
       return 'name-only';
     }
 
