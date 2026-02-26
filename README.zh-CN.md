@@ -1,0 +1,202 @@
+# Ant Design Token Lens VS Code 插件
+
+一款让 Ant Design Token 在 VS Code 中「可见、可理解、可操作」的插件。
+
+[English](./README.md) | 简体中文
+
+## 插件效果
+
+![示例1](./images/example-1.gif)
+
+## 为什么会需要这个插件
+
+Ant Design 提供了 `useToken` 和 `getDesignToken` 来获取 Design Token，但仅限于 React 运行时环境。在 `.css`、`.less` 等样式文件中，或者结合 `Tailwind CSS` 开发时，直接使用这些 JS 变量往往存在限制。
+
+特别是 Design Token 在 `Tailwind CSS` 中通常**不生效**，只能退化为**行内样式**使用。
+
+作为一名 `Tailwind CSS` 使用者，我希望能直观地看到 Token 的实际效果，而不是面对抽象的变量名。为了解决这一痛点，让 Token 在 VS Code 中真实“可见”，本插件应运而生。
+
+```html
+<!-- 不生效 -->
+<div className="{`text-[${token.colorPrimary}]`}"></div>
+<!-- 生效 -->
+<div className="text-[var(--ant-color-primary)]"></div>
+<div className="text-(--ant-color-primary)"></div>
+```
+
+`Tailwind CSS` 是在构建时（Build Time）生成样式的，而 `token.colorPrimary` 是一个 运行时（Runtime） 的 `JavaScript` 变量。
+
+核心区别：静态字符串 vs 动态插值
+
+#### `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` 为什么可行？
+
+- 构建阶段：`Tailwind` 扫描器在源码中看到了 `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` 这个完整的静态字符串。它不需要执行 JS，就知道你要一个任意值工具类。
+- 生成 CSS：它提取中括号里的内容，直接生成如下 CSS 规则：
+- 运行阶段：浏览器读取这行 CSS。此时 Ant Design 已经（通过 JS）把 `--ant-color-primary` 注入到了 html 或 body 标签上，浏览器成功解析了变量，颜色生效。
+
+#### `text-[${token.colorPrimary}]` 为什么不可行？
+
+- 构建阶段：`Tailwind` 扫描器看到的是 `text-[${token.colorPrimary}]`。这是一个包含变量的模板字符串。
+- 无法预测：`Tailwind` 只进行静态文本分析，它不执行 `JavaScript`。它无法预知 `token.colorPrimary` 到底会变成 `#1677ff` 还是 `red`。
+- 结果：因为无法确定类名，`Tailwind` 放弃生成任何 CSS。
+- 运行阶段：虽然 React 把类名渲染成了 `text-[#1677ff]`，但对应的 CSS 规则根本不存在，所以颜色不生效。
+
+## 项目介绍
+
+在使用 Ant Design v5/v6 进行前端开发时，CSS Token（如 `--ant-color-primary`）是抽象的，开发者无法直观看到真实颜色效果。本插件旨在解决这个痛点，让 Token 使用更加直观和高效。
+
+## 功能特性
+
+### ✅ 已完成（阶段1 + 阶段2 + 阶段3 + 阶段4）
+
+#### 阶段1：Token 数据管理
+
+- ✅ Token 数据管理：完整的 Token 注册表和查询系统
+- ✅ 主题管理：自动检测和切换 Light/Dark 主题
+- ✅ 高性能：10000 次查询仅需 1ms
+- ✅ 类型安全：完整的 TypeScript 类型定义
+- ✅ 完善测试：35 个测试用例
+
+#### 阶段2：颜色可视化
+
+- ✅ **智能扫描**：自动识别代码中的 `var(--ant-*)` Token
+- ✅ **颜色装饰**：在编辑器中直接显示 Token 对应的颜色
+- ✅ **实时更新**：编辑代码或切换主题时自动更新颜色显示
+- ✅ **多样式支持**：方形、圆形、下划线、背景等多种装饰样式
+- ✅ **多文件支持**：支持 CSS、Less、Sass、JavaScript、TypeScript、JSX/TSX、Vue、HTML
+- ✅ **高性能**：1000 行文件扫描 < 50ms，支持大文件
+- ✅ **可配置**：灵活的样式、位置、大小配置
+
+![示例2-颜色可视化](./images/example-2.png)
+
+#### 阶段3：Hover 信息提示
+
+- ✅ **智能悬浮提示**：鼠标悬停显示 Token 详细信息
+- ✅ **多主题对比**：同时显示 Light 和 Dark 主题的颜色值
+- ✅ **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- ✅ **颜色预览增强**：带边框的颜色块，直观清晰
+- ✅ **分级信息展示**：Minimal、Normal、Detailed 三种模式
+- ✅ **快捷命令**：复制值、查找引用、切换主题等
+- ✅ **性能优化**：缓存机制、防抖处理，响应 < 100ms
+
+![示例3-Hover信息提示](./images/example-3.png)
+
+#### 阶段4：智能自动补全
+
+- ✅ **智能触发**：输入 `var(--` 或 `--ant` 或者 `-(-)` 自动弹出补全
+- ✅ **上下文感知**：根据位置自动选择正确的插入格式
+- ✅ **智能排序**：最近使用优先、完全匹配优先、分类优先
+- ✅ **丰富信息**：显示 Token 名称、描述、当前值、颜色预览
+- ✅ **性能优化**：多级缓存、增量过滤，响应 < 200ms
+- ✅ **Snippet 支持**：自动插入 `var()` 语法，支持 fallback 参数
+- ✅ **高度可配置**：详细程度、最近使用、拼音搜索等多项配置
+
+![示例4-智能自动补全](./images/example-4.png)
+
+## 使用示例
+
+### 颜色可视化效果
+
+```tsx
+/* 蓝色色块会显示在这里 → */
+<div className="text-(--ant-color-primary)"></div>
+// 等价
+<div className="text-[var(--ant-color-primary)]"></div>
+```
+
+```css
+.button {
+  /* 蓝色色块会显示在这里 → */
+  color: var(--ant-color-primary);
+
+  /* 灰色色块会显示在这里 → */
+  background: var(--ant-color-bg-container);
+
+  /* 边框颜色也会显示 → */
+  border: 1px solid var(--ant-color-border);
+}
+```
+
+### 支持的文件类型
+
+- **样式文件**: CSS, Less, Sass/Scss
+- **脚本文件**: JavaScript, TypeScript
+- **框架文件**: JSX, TSX (React), Vue
+- **标记文件**: HTML
+
+### Hover 信息提示 🆕
+
+将鼠标悬停在任何 `var(--ant-*)` Token 上，查看详细信息：
+
+- **Token 名称和语义**：了解 Token 的用途
+- **当前主题值**：查看当前主题下的实际值
+- **多主题对比**：同时显示 Light 和 Dark 主题的值
+- **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- **颜色预览**：直观的颜色块显示
+- **快捷操作**：复制值、查找引用等
+
+#### Hover 示例
+
+```css
+.button {
+  color: var(--ant-color-primary);
+  /* 悬停后显示：
+     🎨 --ant-color-primary
+     语义: 品牌主色
+     当前主题 (light): 🟦 #1677ff
+     多主题对比:
+       - Light: 🟦 #1677ff
+       - Dark: 🟦 #177ddc
+     颜色格式:
+       - HEX: #1677FF
+       - RGB: rgb(22, 119, 255)
+       - HSL: hsl(216, 100%, 54%)
+  */
+}
+```
+
+### 可用命令
+
+打开命令面板（Cmd/Ctrl + Shift + P），输入：
+
+- `Ant Design Token: Toggle Color Decorator` - 启用/禁用颜色装饰器
+- `Ant Design Token: Refresh Token Decorations` - 刷新所有装饰
+- `Ant Design Token: Toggle Theme Preview` - 切换主题预览（快捷键：`Ctrl+Alt+T` / `Cmd+Alt+T`）
+- `Ant Design Token: Refresh Token Data` - 刷新 Token 数据（快捷键：`Ctrl+Alt+R` / `Cmd+Alt+R`）
+- `Ant Design Token: Clear Recent Tokens` - 清空最近使用的 Token 记录
+
+### 配置选项
+
+在 VS Code 设置中搜索 "antdToken"：
+
+```json
+{
+  // 主题模式
+  "antdToken.themeMode": "light", // "auto" | "light" | "dark"
+
+  // 颜色装饰器
+  "antdToken.colorDecorator.enabled": true,
+  "antdToken.colorDecorator.style": "background", // "square" | "circle" | "underline" | "background"
+  "antdToken.colorDecorator.position": "before", // "before" | "after"
+  "antdToken.colorDecorator.size": "medium", // "small" | "medium" | "large"
+
+  // Hover 提示
+  "antdToken.enableHover": true,
+  "antdToken.showMultiTheme": true, // 显示多主题对比
+  "antdToken.showColorFormats": true, // 显示颜色格式转换
+  "antdToken.hoverVerbosity": "normal", // "minimal" | "normal" | "detailed"
+
+  // 自动补全
+  "antdToken.enableCompletion": true, // 启用自动补全
+  "antdToken.completionDetailLevel": "normal", // "minimal" | "normal" | "detailed"
+  "antdToken.showRecentTokensFirst": true, // 最近使用的 Token 优先
+  "antdToken.maxRecentTokens": 10, // 记录最近使用的 Token 数量
+  "antdToken.enablePinyinSearch": true, // 启用拼音首字母搜索
+  "antdToken.enableCategoryGroups": false, // 按分类分组显示 (e.g. Color, Spacing)
+  "antdToken.showCompletionIcons": true // 显示颜色图标
+}
+```
+
+## License
+
+MIT
