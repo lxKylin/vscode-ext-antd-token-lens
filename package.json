@@ -2,8 +2,8 @@
   "name": "ant-design-token-lens",
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
-  "description": "一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。",
-  "version": "0.1.0",
+  "description": "A plugin that makes Ant Design Tokens 'visible, understandable, and actionable' in VS Code.",
+  "version": "0.1.1",
   "license": "MIT",
   "engines": {
     "vscode": "^1.105.1"
@@ -29,52 +29,52 @@
       {
         "command": "antdToken.refreshDecorations",
         "title": "Refresh Token Decorations",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.toggleDecorator",
         "title": "Toggle Color Decorator",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.copyTokenValue",
         "title": "复制 Token 值",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.findReferences",
         "title": "查找 Token 引用",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.toggleThemePreview",
         "title": "切换主题预览",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.refreshTokens",
         "title": "刷新 Token 数据",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.clearRecentTokens",
         "title": "清空最近使用的 Token",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.reloadSources",
         "title": "重新加载 Token 数据源",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.showSources",
         "title": "查看 Token 数据源",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       },
       {
         "command": "antdToken.rescanTokenFiles",
         "title": "重新扫描 Token 文件",
-        "category": "Ant Design Token"
+        "category": "Ant Design Token Lens"
       }
     ],
     "keybindings": [
@@ -91,7 +91,7 @@
       }
     ],
     "configuration": {
-      "title": "Ant Design Token",
+      "title": "Ant Design Token Lens",
       "properties": {
         "antdToken.themeMode": {
           "type": "string",
@@ -205,11 +205,6 @@
           "minimum": 5,
           "maximum": 50,
           "description": "记录的最近使用 Token 数量"
-        },
-        "antdToken.enablePinyinSearch": {
-          "type": "boolean",
-          "default": true,
-          "description": "启用拼音首字母搜索"
         },
         "antdToken.enableCategoryGroups": {
           "type": "boolean",
@@ -331,7 +326,6 @@
     "@types/color": "^4.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/pinyin": "^2.10.2",
     "@types/vscode": "^1.105.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -342,7 +336,6 @@
     "typescript-eslint": "^8.52.0"
   },
   "dependencies": {
-    "color": "^5.0.3",
-    "pinyin": "^4.0.0"
+    "color": "^5.0.3"
   }
 }

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { TokenRegistry } from '../tokenManager/tokenRegistry';
 import { ThemeManager } from '../tokenManager/themeManager';
 import { Config } from '../utils/config';
-import { PinyinSearch } from '../utils/pinyinSearch';
 import { CompletionTrigger, TriggerContext } from './completionTrigger';
 import { CompletionItemBuilder } from './completionItemBuilder';
 import { CompletionSorter } from './completionSorter';
@@ -208,7 +207,6 @@ export class AntdTokenCompletionProvider
     }
 
     const lowerFilter = filterText.toLowerCase();
-    const enablePinyin = Config.getEnablePinyinSearch();
 
     return tokens.filter((token) => {
       const name = token.name.toLowerCase();
@@ -218,23 +216,7 @@ export class AntdTokenCompletionProvider
         return true;
       }
 
-      // 2. 拼音搜索（如果启用）
-      if (enablePinyin && token.description) {
-        // 移除 -- 前缀进行拼音匹配
-        const query = lowerFilter.replace(/^--(?:ant-)?/, '');
-
-        // 拼音首字母匹配
-        if (PinyinSearch.matchInitials(token.description, query)) {
-          return true;
-        }
-
-        // 完整拼音匹配
-        if (PinyinSearch.matchFull(token.description, query)) {
-          return true;
-        }
-      }
-
-      // 3. 分类匹配
+      // 2. 分类匹配
       if (token.category) {
         const category = token.category.toLowerCase();
         if (category.includes(lowerFilter)) {

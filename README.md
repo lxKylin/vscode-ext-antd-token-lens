@@ -94,7 +94,7 @@ When developing with Ant Design v5/v6, CSS Tokens (like `--ant-color-primary`) a
 - ✅ **Rich Information**: Shows token name, description, current value, color preview
 - ✅ **Performance Optimization**: Multi-level caching, incremental filtering, response < 200ms
 - ✅ **Snippet Support**: Automatically inserts `var()` syntax, supports fallback parameters
-- ✅ **Highly Configurable**: Verbosity level, recent usage, pinyin search and more
+- ✅ **Highly Configurable**: Verbosity level, recent usage, and more
 
 ![Example 4 - Smart Auto-completion](./images/example-4.png)
 
@@ -196,7 +196,6 @@ Search for "antdToken" in VS Code settings:
   "antdToken.completionDetailLevel": "normal", // "minimal" | "normal" | "detailed"
   "antdToken.showRecentTokensFirst": true, // Recently used tokens first
   "antdToken.maxRecentTokens": 10, // Number of recent tokens to keep
-  "antdToken.enablePinyinSearch": true, // Enable pinyin initial letter search
   "antdToken.enableCategoryGroups": false, // Group by category display (e.g. Color, Spacing)
   "antdToken.showCompletionIcons": true // Show color icons
 }

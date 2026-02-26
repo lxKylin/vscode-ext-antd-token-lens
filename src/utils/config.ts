@@ -118,15 +118,6 @@ export class Config {
   }
 
   /**
-   * 获取是否启用拼音搜索
-   */
-  static getEnablePinyinSearch(): boolean {
-    return vscode.workspace
-      .getConfiguration('antdToken')
-      .get('enablePinyinSearch', true);
-  }
-
-  /**
    * 获取是否启用分类分组
    */
   static getEnableCategoryGroups(): boolean {
