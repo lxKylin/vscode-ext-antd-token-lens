@@ -4,15 +4,15 @@
  */
 
 import * as vscode from 'vscode';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { BaseTokenSource } from './baseSource';
 import { SourceType, SourceConfig, ExtendedTokenInfo } from '../sourceTypes';
 import { CSSParser } from '../cssParser';
 
 export class CSSTokenSource extends BaseTokenSource {
   private fileWatcher?: vscode.FileSystemWatcher;
-  private onDidChangeEmitter = new vscode.EventEmitter<void>();
+  private readonly onDidChangeEmitter = new vscode.EventEmitter<void>();
   public readonly onDidChange = this.onDidChangeEmitter.event;
 
   constructor(config: SourceConfig) {
