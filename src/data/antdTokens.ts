@@ -172,8 +172,8 @@ export function inferTokenCategory(name: string): TokenCategory {
  * 加载内置的 Ant Design Token
  */
 export function loadBuiltinTokens(cssFolderPath: string): ThemeTokens {
-  const fs = require('fs');
-  const path = require('path');
+  const fs = require('node:fs');
+  const path = require('node:path');
   const {
     parseCSSVariablesFromSelectors
   } = require('../tokenManager/cssParser');

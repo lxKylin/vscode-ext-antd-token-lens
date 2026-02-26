@@ -5,10 +5,10 @@
 
 import { BaseTokenSource } from './baseSource';
 import { SourceType, SourceConfig, ExtendedTokenInfo } from '../sourceTypes';
-import { loadBuiltinTokens, TokenInfo } from '@/data/antdTokens';
+import { loadBuiltinTokens } from '@/data/antdTokens';
 
 export class BuiltinTokenSource extends BaseTokenSource {
-  private assetsPath: string;
+  private readonly assetsPath: string;
 
   constructor(assetsPath: string, config?: Partial<SourceConfig>) {
     super(SourceType.BUILTIN, {

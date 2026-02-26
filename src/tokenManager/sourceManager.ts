@@ -17,14 +17,14 @@ import { CSSTokenSource } from './sources/cssSource';
 import { Config } from '../utils/config';
 
 export class SourceManager implements vscode.Disposable {
-  private sources: Map<string, ITokenSource> = new Map();
+  private readonly sources: Map<string, ITokenSource> = new Map();
   private disposables: vscode.Disposable[] = [];
-  private onDidSourcesChangeEmitter = new vscode.EventEmitter<void>();
+  private readonly onDidSourcesChangeEmitter = new vscode.EventEmitter<void>();
   public readonly onDidSourcesChange = this.onDidSourcesChangeEmitter.event;
-  private assetsPath: string;
+  private readonly assetsPath: string;
 
   constructor(
-    private tokenRegistry: TokenRegistry,
+    private readonly tokenRegistry: TokenRegistry,
     assetsPath: string
   ) {
     this.assetsPath = assetsPath;

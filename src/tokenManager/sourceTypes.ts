@@ -2,7 +2,7 @@
  * Token 数据源类型定义
  */
 
-import { TokenInfo as BaseTokenInfo, TokenCategory } from '@/data/antdTokens';
+import { TokenInfo as BaseTokenInfo } from '@/data/antdTokens';
 
 /**
  * Token 数据源类型

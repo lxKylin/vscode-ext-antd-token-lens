@@ -10,12 +10,12 @@ import { ColorContrast } from '@/utils/colorContrast';
  * 负责构建美观、信息丰富的 Hover 信息面板
  */
 export class HoverContentBuilder {
-  private cache = new Map<string, vscode.MarkdownString>();
+  private readonly cache = new Map<string, vscode.MarkdownString>();
   private cacheVersion = 0;
 
   constructor(
-    private tokenRegistry: TokenRegistry,
-    private themeManager: ThemeManager
+    private readonly tokenRegistry: TokenRegistry,
+    private readonly themeManager: ThemeManager
   ) {
     // 监听主题变化，清除缓存
     this.themeManager.onThemeChange(() => {

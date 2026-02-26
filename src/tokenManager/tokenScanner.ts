@@ -47,7 +47,7 @@ export class TokenScanner {
   ];
 
   /** 扫描结果缓存 */
-  private cache = new Map<string, { version: number; matches: TokenMatch[] }>();
+  private readonly cache = new Map<string, { version: number; matches: TokenMatch[] }>();
 
   /**
    * 扫描文档中的所有 Ant Design Token

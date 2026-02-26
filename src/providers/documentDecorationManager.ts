@@ -9,13 +9,13 @@ import { debounce, PerformanceMonitor } from '@/utils/performance';
  * 负责管理编辑器的装饰生命周期
  */
 export class DocumentDecorationManager {
-  private disposables: vscode.Disposable[] = [];
+  private readonly disposables: vscode.Disposable[] = [];
   private updateTimeout: NodeJS.Timeout | undefined;
   private readonly UPDATE_DELAY = 300; // 防抖延迟（毫秒）
 
   constructor(
-    private scanner: TokenScanner,
-    private decorator: ColorDecorator
+    private readonly scanner: TokenScanner,
+    private readonly decorator: ColorDecorator
   ) {
     this.initialize();
   }

@@ -11,7 +11,7 @@ export interface CategoryInfo {
  * 补全项分类管理器
  */
 export class CompletionCategories {
-  private static categories: Map<string, CategoryInfo> = new Map([
+  private static readonly categories: Map<string, CategoryInfo> = new Map([
     ['color', { name: 'color', label: '🎨 颜色', priority: 1, icon: '🎨' }],
     ['bg', { name: 'bg', label: '🖼️ 背景', priority: 2, icon: '🖼️' }],
     ['text', { name: 'text', label: '📝 文本', priority: 3, icon: '📝' }],

@@ -11,14 +11,14 @@ import { getColorContrast } from '@/utils/colorContrast';
  */
 export class ColorDecorator {
   /** 装饰类型缓存 Map<颜色值, DecorationType> */
-  private decorationTypes = new Map<string, vscode.TextEditorDecorationType>();
+  private readonly decorationTypes = new Map<string, vscode.TextEditorDecorationType>();
 
   /** 资源清理器 */
   private disposables: vscode.Disposable[] = [];
 
   constructor(
-    private tokenRegistry: TokenRegistry,
-    private themeManager: ThemeManager
+    private readonly tokenRegistry: TokenRegistry,
+    private readonly themeManager: ThemeManager
   ) {
     this.initialize();
   }

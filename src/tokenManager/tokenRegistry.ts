@@ -10,13 +10,13 @@ export type { TokenInfo, TokenCategory };
 
 export class TokenRegistry {
   /** 按名称索引的 Token */
-  private tokens: Map<string, TokenInfo[]>;
+  private readonly tokens: Map<string, TokenInfo[]>;
 
   /** 按分类索引的 Token */
-  private tokensByCategory: Map<TokenCategory, TokenInfo[]>;
+  private readonly tokensByCategory: Map<TokenCategory, TokenInfo[]>;
 
   /** 按主题索引的 Token */
-  private tokensByTheme: Map<'light' | 'dark', Map<string, TokenInfo>>;
+  private readonly tokensByTheme: Map<'light' | 'dark', Map<string, TokenInfo>>;
 
   /** 所有 Token 名称的缓存 */
   private allTokenNamesCache: string[] | null = null;
@@ -87,9 +87,7 @@ export class TokenRegistry {
    * 获取所有 Token 名称列表（去重）
    */
   getAllTokenNames(): string[] {
-    if (this.allTokenNamesCache === null) {
-      this.allTokenNamesCache = Array.from(this.tokens.keys());
-    }
+    this.allTokenNamesCache ??= Array.from(this.tokens.keys());
     return this.allTokenNamesCache;
   }
 

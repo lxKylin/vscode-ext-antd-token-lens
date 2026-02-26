@@ -10,14 +10,14 @@ import { PerformanceMonitor } from '@/utils/performance';
  * 当鼠标悬停在 Token 上时，显示详细的 Token 信息
  */
 export class AntdTokenHoverProvider implements vscode.HoverProvider {
-  private contentBuilder: HoverContentBuilder;
+  private readonly contentBuilder: HoverContentBuilder;
   private lastHoverTime = 0;
   private readonly HOVER_DEBOUNCE = 50; // 50ms
 
   constructor(
-    private tokenRegistry: TokenRegistry,
-    private themeManager: ThemeManager,
-    private tokenScanner: TokenScanner
+    private readonly tokenRegistry: TokenRegistry,
+    private readonly themeManager: ThemeManager,
+    private readonly tokenScanner: TokenScanner
   ) {
     this.contentBuilder = new HoverContentBuilder(tokenRegistry, themeManager);
   }

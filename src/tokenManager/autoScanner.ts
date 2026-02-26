@@ -4,16 +4,16 @@
  */
 
 import * as vscode from 'vscode';
-import * as path from 'path';
+import * as path from 'node:path';
 import { SourceManager } from './sourceManager';
 import { SourceConfig, SourceType } from './sourceTypes';
 import { Config } from '../utils/config';
 
 export class AutoScanner implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
-  private scanResults: Map<string, SourceConfig> = new Map();
+  private readonly scanResults: Map<string, SourceConfig> = new Map();
 
-  constructor(private sourceManager: SourceManager) {}
+  constructor(private readonly sourceManager: SourceManager) {}
 
   /**
    * 启动自动扫描
