@@ -7,3 +7,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial release
+
+## [0.1.0] - 2026-02-26
+
+- 优化补全提示
+- VSCode 依赖版本调整为 `1.105.1`及以上
+- 添加对 Tailwind CSS 中 bg-(--xx) 这种格式的支持
