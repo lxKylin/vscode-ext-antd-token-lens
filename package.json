@@ -3,10 +3,10 @@
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
   "description": "一款让 Ant Design CSS Token 在 VS Code 中「可见、可理解、可操作」的插件。",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.108.1"
+    "vscode": "^1.105.1"
   },
   "categories": [
     "Other"
@@ -221,6 +221,22 @@
           "default": true,
           "description": "在补全项前显示颜色图标"
         },
+        "antdToken.enableJsSupport": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用 JavaScript/TypeScript 中的 Token 支持"
+        },
+        "antdToken.jsTokenObjects": {
+          "type": "array",
+          "default": [
+            "token",
+            "theme"
+          ],
+          "description": "识别的 Token 对象名称",
+          "items": {
+            "type": "string"
+          }
+        },
         "antdToken.sources": {
           "type": "array",
           "default": [],
@@ -296,7 +312,7 @@
     "watch": "node esbuild.js --watch",
     "package": "node esbuild.js --production",
     "vsix": "pnpm run package && vsce package --no-dependencies --allow-missing-repository --skip-license",
-    "compile-tests": "tsc -p . -outDir out",
+    "compile-tests": "tsc -p ./tsconfig.json -outDir out && tsc-alias -p ./tsconfig.json --outDir out",
     "watch-tests": "tsc -p . -outDir out -w",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
@@ -316,11 +332,12 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/pinyin": "^2.10.2",
-    "@types/vscode": "^1.108.1",
+    "@types/vscode": "^1.105.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
+    "tsc-alias": "1.8.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0"
   },
