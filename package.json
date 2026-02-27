@@ -1,5 +1,6 @@
 {
   "name": "ant-design-token-lens",
+  "type": "module",
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
   "description": "A plugin that makes Ant Design Tokens 'visible, understandable, and actionable' in VS Code.",

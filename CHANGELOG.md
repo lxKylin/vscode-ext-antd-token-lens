@@ -14,3 +14,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - 添加 Token 数据源，可添加自定义Token
 - VSCode 依赖版本调整为 `1.105.1`及以上
 - 添加对 Tailwind CSS 中 bg-(--xx) 这种格式的支持
+
+## [0.1.1] - 2026-02-27
+
+- 修改插件 icon
+- 移除拼音搜索

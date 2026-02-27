@@ -1,4 +1,11 @@
-const esbuild = require('esbuild');
+import esbuild from 'esbuild';
+import fs from 'node:fs';
+import path,{ dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
@@ -25,9 +32,6 @@ const esbuildProblemMatcherPlugin = {
     });
   }
 };
-
-const fs = require('node:fs');
-const path = require('node:path');
 
 // Plugin to copy assets
 const copyAssetsPlugin = {
