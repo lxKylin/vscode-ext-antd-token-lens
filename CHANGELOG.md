@@ -19,3 +19,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - 修改插件 icon
 - 移除拼音搜索
+
+## [0.1.2] - 2026-02-27
+
+- 修复 ES 模块冲突

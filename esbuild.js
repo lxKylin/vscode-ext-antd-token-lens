@@ -84,7 +84,7 @@ async function main() {
     sourcemap: !production,
     sourcesContent: false,
     platform: 'node',
-    outfile: 'out/extension.js',
+    outfile: 'out/extension.cjs',
     external: ['vscode'],
     logLevel: 'silent',
     // 显式配置 tsconfig 路径，确保 esbuild 正确读取 paths 映射
