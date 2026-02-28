@@ -32,7 +32,8 @@ function makeDocument(content: string): vscode.TextDocument {
         text: lines[lineNum] ?? '',
         lineNumber: lineNum
       } as vscode.TextLine;
-    }
+    },
+    getText: () => content
   } as unknown as vscode.TextDocument;
 }
 
@@ -48,13 +49,15 @@ suite('JsTokenCompletionProvider Test Suite', () => {
     assert.ok(Array.isArray(result) && result.length > 0, '应返回非空补全数组');
   });
 
-  test('theme. 后触发补全，返回非空数组', () => {
+  test('useToken() 解构别名后触发补全，返回非空数组', () => {
     const provider = new JsTokenCompletionProvider(
       mockRegistry,
       mockThemeManager
     );
-    const doc = makeDocument('const x = theme.');
-    const position = new vscode.Position(0, 16);
+    const content =
+      'const { token: antdToken } = useToken();\nconst x = antdToken.';
+    const doc = makeDocument(content);
+    const position = new vscode.Position(1, 20);
     const result = provider.provideCompletionItems(doc, position);
     assert.ok(Array.isArray(result) && result.length > 0, '应返回非空补全数组');
   });
@@ -113,5 +116,26 @@ suite('JsTokenCompletionProvider Test Suite', () => {
     // replaceRange 应从 'col' 起始处（第 6 列）到当前位置（第 9 列）
     assert.strictEqual(range.start.character, 6, 'replaceRange 应从 col 开始');
     assert.strictEqual(range.end.character, 9, 'replaceRange 应在光标位置结束');
+  });
+
+  test('别名部分输入后触发补全，replaceRange 正确', () => {
+    const provider = new JsTokenCompletionProvider(
+      mockRegistry,
+      mockThemeManager
+    );
+    const content = 'const { token: antdToken } = useToken();\nantdToken.col';
+    const doc = makeDocument(content);
+    const position = new vscode.Position(1, 13);
+    const result = provider.provideCompletionItems(doc, position);
+    assert.ok(result && result.length > 0, '应返回补全数组');
+    const item = result![0];
+    assert.ok(item.range, '应设置替换范围');
+    const range = item.range as vscode.Range;
+    assert.strictEqual(range.start.character, 10, 'replaceRange 应从 col 开始');
+    assert.strictEqual(
+      range.end.character,
+      13,
+      'replaceRange 应在光标位置结束'
+    );
   });
 });

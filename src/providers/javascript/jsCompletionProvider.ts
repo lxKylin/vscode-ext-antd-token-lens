@@ -4,12 +4,11 @@ import { TokenRegistry } from '@/tokenManager/tokenRegistry';
 import { ThemeManager } from '@/tokenManager/themeManager';
 import { TokenNameConverter } from '@/utils/tokenNameConverter';
 import { CompletionItemBuilder } from '@/providers/completionItemBuilder';
+import { JsTokenAliasDetector } from '@/utils/jsTokenAliasDetector';
 
 export class JsTokenCompletionProvider
   implements vscode.CompletionItemProvider
 {
-  private static readonly TRIGGER_PATTERN = /\btoken\.\w*$/;
-
   constructor(
     private readonly tokenRegistry: TokenRegistry,
     private readonly themeManager: ThemeManager
@@ -26,12 +25,18 @@ export class JsTokenCompletionProvider
     const lineText = document.lineAt(position.line).text;
     const textBeforeCursor = lineText.substring(0, position.character);
 
-    if (!JsTokenCompletionProvider.TRIGGER_PATTERN.test(textBeforeCursor)) {
+    // 自动检测当前文件中 useToken() 解构出的 token 变量别名
+    const identifiers = JsTokenAliasDetector.detect(document.getText());
+    const idGroup = JsTokenAliasDetector.buildIdentifierGroup(identifiers);
+
+    const triggerPattern = new RegExp(`\\b${idGroup}\\.\\w*$`);
+    if (!triggerPattern.test(textBeforeCursor)) {
       return undefined;
     }
 
     // 计算替换范围（覆盖用户已输入的部分，如 token.col 中的 col）
-    const dotMatch = textBeforeCursor.match(/\btoken\.(\w*)$/);
+    const dotPattern = new RegExp(`\\b${idGroup}\\.(\\w*)$`);
+    const dotMatch = textBeforeCursor.match(dotPattern);
     let replaceRange: vscode.Range | undefined;
     if (dotMatch) {
       const typedLength = dotMatch[1].length;

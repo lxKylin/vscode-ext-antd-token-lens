@@ -2,10 +2,9 @@
 import * as vscode from 'vscode';
 import { HoverContentBuilder } from '@/providers/hoverContentBuilder';
 import { TokenNameConverter } from '@/utils/tokenNameConverter';
+import { JsTokenAliasDetector } from '@/utils/jsTokenAliasDetector';
 
 export class JsTokenHoverProvider implements vscode.HoverProvider {
-  private static readonly HOVER_PATTERN = /\btoken\.([a-zA-Z][a-zA-Z0-9]*)/;
-
   constructor(private readonly hoverContentBuilder: HoverContentBuilder) {}
 
   provideHover(
@@ -17,16 +16,18 @@ export class JsTokenHoverProvider implements vscode.HoverProvider {
       return undefined;
     }
 
-    const range = document.getWordRangeAtPosition(
-      position,
-      JsTokenHoverProvider.HOVER_PATTERN
-    );
+    // 自动检测当前文件中 useToken() 解构出的 token 变量别名
+    const identifiers = JsTokenAliasDetector.detect(document.getText());
+    const idGroup = JsTokenAliasDetector.buildIdentifierGroup(identifiers);
+    const hoverPattern = new RegExp(`\\b${idGroup}\\.([a-zA-Z][a-zA-Z0-9]*)`);
+
+    const range = document.getWordRangeAtPosition(position, hoverPattern);
     if (!range) {
       return undefined;
     }
 
     const text = document.getText(range);
-    const match = text.match(JsTokenHoverProvider.HOVER_PATTERN);
+    const match = text.match(hoverPattern);
     if (!match) {
       return undefined;
     }

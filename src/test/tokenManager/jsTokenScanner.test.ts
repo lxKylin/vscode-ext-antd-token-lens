@@ -26,7 +26,8 @@ function makeDocument(
     languageId,
     version,
     lineCount: lines.length,
-    lineAt: (line: number) => ({ text: lines[line] })
+    lineAt: (line: number) => ({ text: lines[line] }),
+    getText: () => lines.join('\n')
   } as any;
 }
 
@@ -52,13 +53,16 @@ suite('JsTokenScanner Test Suite', () => {
     assert.strictEqual(matches[0].fullMatch, 'token.colorPrimary');
   });
 
-  test('识别 theme.colorPrimary，tokenName 为 --ant-color-primary', () => {
-    const doc = makeDocument(['const c = theme.colorPrimary;']);
+  test('识别 useToken() 别名 antdToken.colorPrimary', () => {
+    const doc = makeDocument([
+      'const { token: antdToken } = useToken();',
+      'const c = antdToken.colorPrimary;'
+    ]);
     const matches = scanner.scanDocument(doc);
 
     assert.strictEqual(matches.length, 1);
     assert.strictEqual(matches[0].tokenName, '--ant-color-primary');
-    assert.strictEqual(matches[0].fullMatch, 'theme.colorPrimary');
+    assert.strictEqual(matches[0].fullMatch, 'antdToken.colorPrimary');
   });
 
   test('忽略 Registry 中不存在的 token（如 token.unknownToken）', () => {

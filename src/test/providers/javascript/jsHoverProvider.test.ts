@@ -75,10 +75,13 @@ suite('JsTokenHoverProvider Test Suite', () => {
     assert.ok(result instanceof vscode.Hover, '应返回 Hover 对象');
   });
 
-  test('theme.colorPrimary 悬停应返回 Hover 对象', () => {
+  test('useToken() 解构别名后 antdToken.colorPrimary 悬停应返回 Hover 对象', () => {
     const provider = new JsTokenHoverProvider(makeBuilder(true));
-    const doc = makeDocument('const x = theme.colorPrimary;');
-    const position = new vscode.Position(0, 20);
+    const content =
+      'const { token: antdToken } = useToken();\nconst x = antdToken.colorPrimary;';
+    const doc = makeDocument(content);
+    // position within "colorPrimary" on line 1
+    const position = new vscode.Position(1, 24);
     const result = provider.provideHover(doc, position, mockCancellationToken);
     assert.ok(result instanceof vscode.Hover, '应返回 Hover 对象');
   });
@@ -116,6 +119,28 @@ suite('JsTokenHoverProvider Test Suite', () => {
     assert.strictEqual(
       result.range!.end.character,
       28,
+      'range 应包含 colorPrimary'
+    );
+  });
+
+  test('别名 Hover range 应覆盖完整 antdToken.colorPrimary', () => {
+    const provider = new JsTokenHoverProvider(makeBuilder(true));
+    const content =
+      'const { token: antdToken } = useToken();\nconst x = antdToken.colorPrimary;';
+    const doc = makeDocument(content);
+    const position = new vscode.Position(1, 24);
+    const result = provider.provideHover(doc, position, mockCancellationToken);
+    assert.ok(result instanceof vscode.Hover, '应返回 Hover 对象');
+    assert.ok(result.range, '应包含 range');
+    // "antdToken.colorPrimary" 从第 10 列开始，长度为 22
+    assert.strictEqual(
+      result.range!.start.character,
+      10,
+      'range 应从 antdToken. 开始'
+    );
+    assert.strictEqual(
+      result.range!.end.character,
+      32,
       'range 应包含 colorPrimary'
     );
   });

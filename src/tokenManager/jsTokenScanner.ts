@@ -4,16 +4,13 @@ import { TokenMatch } from './tokenScanner';
 import { TokenRegistry } from './tokenRegistry';
 import { ThemeManager } from './themeManager';
 import { TokenNameConverter } from '@/utils/tokenNameConverter';
+import { JsTokenAliasDetector } from '@/utils/jsTokenAliasDetector';
 
 /**
  * JS/TS Token 扫描器
  * 负责从 JS/TS 文档中识别 token.xxx 属性访问模式
  */
 export class JsTokenScanner {
-  /** 匹配 token.xxx 属性访问模式的正则（源字符串，用于每次构造避免全局状态问题） */
-  private static readonly PROPERTY_PATTERN =
-    /\btoken\.([a-zA-Z][a-zA-Z0-9]*)\b/g;
-
   /** 支持的语言类型 */
   private static readonly SUPPORTED_LANGUAGES = [
     'javascript',
@@ -88,6 +85,10 @@ export class JsTokenScanner {
   private performScan(document: vscode.TextDocument): TokenMatch[] {
     const matches: TokenMatch[] = [];
 
+    // 自动检测当前文件中 useToken() 解构出的 token 变量别名
+    const identifiers = JsTokenAliasDetector.detect(document.getText());
+    const idGroup = JsTokenAliasDetector.buildIdentifierGroup(identifiers);
+
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
       const lineText = document.lineAt(lineNum).text;
 
@@ -96,8 +97,11 @@ export class JsTokenScanner {
         continue;
       }
 
-      // 使用 PROPERTY_PATTERN 的 source 构造新正则，避免全局正则状态问题
-      const pattern = new RegExp(JsTokenScanner.PROPERTY_PATTERN.source, 'g');
+      // 动态构建匹配模式，支持检测到的别名
+      const pattern = new RegExp(
+        `\\b${idGroup}\\.([a-zA-Z][a-zA-Z0-9]*)\\b`,
+        'g'
+      );
       let match: RegExpExecArray | null;
 
       while ((match = pattern.exec(lineText)) !== null) {
