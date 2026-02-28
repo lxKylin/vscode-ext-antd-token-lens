@@ -14,7 +14,7 @@ export class DocumentDecorationManager {
   private readonly UPDATE_DELAY = 300; // 防抖延迟（毫秒）
 
   constructor(
-    private readonly scanner: TokenScanner,
+    private scanner: TokenScanner,
     private readonly decorator: ColorDecorator
   ) {
     this.initialize();
@@ -124,6 +124,14 @@ export class DocumentDecorationManager {
     vscode.window.visibleTextEditors.forEach((editor) => {
       this.updateEditor(editor);
     });
+  }
+
+  /**
+   * 更换扫描器（用于动态替换扫描逻辑）
+   */
+  updateScanner(scanner: TokenScanner): void {
+    this.scanner = scanner;
+    this.refreshAllEditors();
   }
 
   /**

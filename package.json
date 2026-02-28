@@ -4,7 +4,7 @@
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
   "description": "A plugin that makes Ant Design Tokens 'visible, understandable, and actionable' in VS Code.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "license": "MIT",
   "engines": {
     "vscode": "^1.105.1"
@@ -307,7 +307,7 @@
     "compile": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "package": "node esbuild.js --production",
-    "vsix": "pnpm run package && vsce package --no-dependencies --allow-missing-repository --skip-license",
+    "vsix": "pnpm run package && vsce package --no-dependencies",
     "compile-tests": "tsc -p ./tsconfig.json -outDir out && tsc-alias -p ./tsconfig.json --outDir out",
     "watch-tests": "tsc -p . -outDir out -w",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",

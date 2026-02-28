@@ -3,6 +3,7 @@ import { TokenInfo, TokenRegistry } from '@/tokenManager/tokenRegistry';
 import { ThemeManager } from '@/tokenManager/themeManager';
 import { Config } from '@/utils/config';
 import { ColorConverter } from '@/utils/colorConverter';
+import { TokenNameConverter } from '@/utils/tokenNameConverter';
 
 /**
  * Hover 内容构建器
@@ -24,18 +25,22 @@ export class HoverContentBuilder {
 
   /**
    * 构建 Hover 内容
-   * @param tokenName Token 名称
+   * @param tokenName Token 名称（用于注册表查找）
+   * @param displayName 展示用的名称（可选，不传则使用 tokenName）
    * @returns MarkdownString
    */
-  build(tokenName: string): vscode.MarkdownString | undefined {
+  build(
+    tokenName: string,
+    displayName?: string
+  ): vscode.MarkdownString | undefined {
     // 检查缓存
-    const cacheKey = this.getCacheKey(tokenName);
+    const cacheKey = this.getCacheKey(tokenName) + `:${displayName ?? ''}`;
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
     // 构建内容
-    const content = this.buildContent(tokenName);
+    const content = this.buildContent(tokenName, displayName);
 
     // 缓存结果
     if (content) {
@@ -65,12 +70,16 @@ export class HoverContentBuilder {
   /**
    * 构建内容（原 build 方法的逻辑）
    */
-  private buildContent(tokenName: string): vscode.MarkdownString | undefined {
+  private buildContent(
+    tokenName: string,
+    displayName?: string
+  ): vscode.MarkdownString | undefined {
     const currentTheme = this.themeManager.getCurrentTheme();
     const tokenInfo = this.tokenRegistry.get(tokenName, currentTheme);
+    const nameToShow = displayName ?? tokenName;
 
     if (!tokenInfo) {
-      return this.buildNotFoundContent(tokenName);
+      return this.buildNotFoundContent(nameToShow);
     }
 
     const verbosity = Config.getHoverVerbosity();
@@ -81,14 +90,14 @@ export class HoverContentBuilder {
     // 构建不同详细程度的内容
     switch (verbosity) {
       case 'minimal':
-        this.buildMinimalContent(markdown, tokenInfo);
+        this.buildMinimalContent(markdown, tokenInfo, nameToShow);
         break;
       case 'detailed':
-        this.buildDetailedContent(markdown, tokenInfo, tokenName);
+        this.buildDetailedContent(markdown, tokenInfo, tokenName, nameToShow);
         break;
       case 'normal':
       default:
-        this.buildNormalContent(markdown, tokenInfo, tokenName);
+        this.buildNormalContent(markdown, tokenInfo, tokenName, nameToShow);
         break;
     }
 
@@ -100,10 +109,11 @@ export class HoverContentBuilder {
    */
   private buildMinimalContent(
     markdown: vscode.MarkdownString,
-    tokenInfo: TokenInfo
+    tokenInfo: TokenInfo,
+    displayName: string
   ): void {
     // Token 名称
-    markdown.appendMarkdown(`**Token**: \`${tokenInfo.name}\`\n\n`);
+    markdown.appendMarkdown(`**Token**: \`${displayName}\`\n\n`);
 
     // 当前值
     if (tokenInfo.isColor) {
@@ -121,10 +131,11 @@ export class HoverContentBuilder {
   private buildNormalContent(
     markdown: vscode.MarkdownString,
     tokenInfo: TokenInfo,
-    tokenName: string
+    tokenName: string,
+    displayName: string
   ): void {
     // 标题
-    markdown.appendMarkdown(`### 🎨 ${tokenInfo.name}\n\n`);
+    markdown.appendMarkdown(`### 🎨 ${displayName}\n\n`);
 
     // 语义说明
     if (tokenInfo.description) {
@@ -169,27 +180,33 @@ export class HoverContentBuilder {
   private buildDetailedContent(
     markdown: vscode.MarkdownString,
     tokenInfo: TokenInfo,
-    tokenName: string
+    tokenName: string,
+    displayName: string
   ): void {
     // 包含标准版内容
-    this.buildNormalContent(markdown, tokenInfo, tokenName);
+    this.buildNormalContent(markdown, tokenInfo, tokenName, displayName);
 
     // 添加额外信息
     markdown.appendMarkdown(`\n---\n\n`);
 
     // 相关 Token
     const relatedTokens = this.getRelatedTokens(tokenName);
+    // 若 displayName 与 tokenName 不同，说明是 JS 上下文，相关 Token 也转换为 camelCase
+    const usesCamelCase = displayName !== tokenName;
     if (relatedTokens.length > 0) {
       markdown.appendMarkdown(`**相关 Token**:\n\n`);
       relatedTokens.forEach((related) => {
         const currentTheme = this.themeManager.getCurrentTheme();
         const relatedTokenInfo = this.tokenRegistry.get(related, currentTheme);
+        const relatedDisplay = usesCamelCase
+          ? TokenNameConverter.cssToJs(related)
+          : related;
         if (relatedTokenInfo && relatedTokenInfo.isColor) {
           markdown.appendMarkdown(
-            `- ${this.renderColorValue(relatedTokenInfo.value)} ${related}\n`
+            `- ${this.renderColorValue(relatedTokenInfo.value)} \`${relatedDisplay}\`\n`
           );
         } else {
-          markdown.appendMarkdown(`- ${related}\n`);
+          markdown.appendMarkdown(`- \`${relatedDisplay}\`\n`);
         }
       });
       markdown.appendMarkdown(`\n`);
@@ -208,13 +225,13 @@ export class HoverContentBuilder {
   /**
    * 构建未找到提示
    */
-  private buildNotFoundContent(tokenName: string): vscode.MarkdownString {
+  private buildNotFoundContent(displayName: string): vscode.MarkdownString {
     const markdown = new vscode.MarkdownString('', true);
     markdown.isTrusted = true;
     markdown.supportHtml = true;
 
     markdown.appendMarkdown(`### ⚠️ Token 未找到\n\n`);
-    markdown.appendMarkdown(`Token \`${tokenName}\` 未在注册表中找到。\n\n`);
+    markdown.appendMarkdown(`Token \`${displayName}\` 未在注册表中找到。\n\n`);
     markdown.appendMarkdown(`可能的原因：\n\n`);
     markdown.appendMarkdown(`- Token 名称拼写错误\n`);
     markdown.appendMarkdown(`- 需要更新 Token 数据源\n`);

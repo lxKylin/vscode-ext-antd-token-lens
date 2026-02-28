@@ -16,9 +16,20 @@ import { AntdTokenHoverProvider } from './providers/hoverProvider';
 import { AntdTokenCompletionProvider } from './providers/completionProvider';
 import { HoverContentBuilder } from './providers/hoverContentBuilder';
 import { CompletionIcons } from './utils/completionIcons';
+import { JsTokenScanner } from './tokenManager/jsTokenScanner';
+import { JsTokenHoverProvider } from './providers/javascript/jsHoverProvider';
+import { JsTokenCompletionProvider } from './providers/javascript/jsCompletionProvider';
 
 let decorationManager: DocumentDecorationManager | undefined;
 let completionProvider: AntdTokenCompletionProvider | undefined;
+let jsDecorationManager: DocumentDecorationManager | undefined;
+let jsDisposables: vscode.Disposable[] = [];
+
+function disposeJsSupport() {
+  jsDisposables.forEach((d) => d.dispose());
+  jsDisposables = [];
+  jsDecorationManager = undefined;
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -144,12 +155,132 @@ export async function activate(context: vscode.ExtensionContext) {
 
     console.log('Completion provider registered for supported languages');
 
-    // 监听配置变化清空缓存
+    // ========== JS/TS Token 支持 ==========
+    const jsLanguages = [
+      'javascript',
+      'javascriptreact',
+      'typescript',
+      'typescriptreact'
+    ];
+
+    function initJsSupport() {
+      // 1. 创建 JS 扫描器
+      const jsScanner = new JsTokenScanner(tokenRegistry, themeManager);
+
+      // 2. 让 CSS decorationManager 跳过 JS/TS 文件（避免与 jsDecorationManager 共享 decorator 时互相覆盖）
+      const jsLanguageIds = new Set(jsLanguages);
+      const cssOnlyScanner = {
+        isSupportedDocument: (doc: vscode.TextDocument) =>
+          !jsLanguageIds.has(doc.languageId) &&
+          scanner.isSupportedDocument(doc),
+        scanDocument: (doc: vscode.TextDocument) => scanner.scanDocument(doc),
+        scanRange: (doc: vscode.TextDocument, range: vscode.Range) =>
+          scanner.scanRange(doc, range),
+        scanLine: (text: string, lineNumber: number) =>
+          scanner.scanLine(text, lineNumber),
+        clearCache: (uri?: string) => scanner.clearCache(uri)
+      } as unknown as TokenScanner;
+      decorationManager?.updateScanner(cssOnlyScanner);
+
+      // 3. 创建合并扫描器：对 JS/TS 文件同时识别 var(--ant-xxx) 和 token.xxx 两种模式
+      const jsCombinedScanner = {
+        isSupportedDocument: (doc: vscode.TextDocument) =>
+          jsScanner.isSupportedDocument(doc),
+        scanDocument: (doc: vscode.TextDocument) => [
+          ...scanner.scanDocument(doc),
+          ...jsScanner.scanDocument(doc)
+        ],
+        scanRange: (doc: vscode.TextDocument, range: vscode.Range) =>
+          scanner.scanRange(doc, range),
+        scanLine: (text: string, lineNumber: number) =>
+          scanner.scanLine(text, lineNumber),
+        clearCache: (uri?: string) => {
+          scanner.clearCache(uri);
+          jsScanner.clearCache(uri);
+        }
+      } as unknown as TokenScanner;
+
+      // 4. 颜色装饰：使用合并扫描器
+      const jsDm = new DocumentDecorationManager(jsCombinedScanner, decorator);
+      jsDecorationManager = jsDm;
+      jsDisposables.push(jsDm);
+
+      // 主题切换时刷新 JS 装饰
+      jsDisposables.push(
+        themeManager.onThemeChange(() => {
+          jsScanner.clearCache();
+          jsDecorationManager?.refresh();
+        })
+      );
+
+      // 数据源变化时清缓存
+      if (sourceManager) {
+        jsDisposables.push(
+          sourceManager.onDidSourcesChange(() => {
+            jsScanner.clearCache();
+            jsDecorationManager?.refresh();
+          })
+        );
+      }
+
+      // 5. Hover Provider
+      const jsHoverProvider = new JsTokenHoverProvider(hoverContentBuilder);
+      for (const lang of jsLanguages) {
+        jsDisposables.push(
+          vscode.languages.registerHoverProvider(
+            { scheme: 'file', language: lang },
+            jsHoverProvider
+          )
+        );
+      }
+
+      // 4. Completion Provider（触发字符 "."）
+      const jsCompletionProvider = new JsTokenCompletionProvider(
+        tokenRegistry,
+        themeManager
+      );
+      for (const lang of jsLanguages) {
+        jsDisposables.push(
+          vscode.languages.registerCompletionItemProvider(
+            { scheme: 'file', language: lang },
+            jsCompletionProvider,
+            '.'
+          )
+        );
+      }
+
+      console.log('JS/TS Token support initialized');
+    }
+
+    const enableJsSupport = vscode.workspace
+      .getConfiguration('antdToken')
+      .get<boolean>('enableJsSupport', true);
+
+    if (enableJsSupport) {
+      initJsSupport();
+    }
+
+    // 监听配置变化
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('antdToken')) {
           completionProvider?.clearCache();
           console.log('Completion cache cleared due to config change');
+        }
+
+        if (e.affectsConfiguration('antdToken.enableJsSupport')) {
+          const enabled = vscode.workspace
+            .getConfiguration('antdToken')
+            .get<boolean>('enableJsSupport', true);
+          if (enabled) {
+            initJsSupport();
+          } else {
+            disposeJsSupport();
+          }
+        }
+
+        if (e.affectsConfiguration('antdToken.colorDecorator.enabled')) {
+          jsDecorationManager?.refresh();
         }
       })
     );
@@ -365,5 +496,6 @@ export async function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {
   decorationManager?.dispose();
+  disposeJsSupport();
   dispose();
 }
