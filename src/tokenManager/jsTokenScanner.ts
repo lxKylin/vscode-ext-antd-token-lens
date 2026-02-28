@@ -7,12 +7,12 @@ import { TokenNameConverter } from '@/utils/tokenNameConverter';
 
 /**
  * JS/TS Token 扫描器
- * 负责从 JS/TS 文档中识别 token.xxx / theme.xxx 属性访问模式
+ * 负责从 JS/TS 文档中识别 token.xxx 属性访问模式
  */
 export class JsTokenScanner {
-  /** 匹配 token.xxx 或 theme.xxx 属性访问模式的正则（源字符串，用于每次构造避免全局状态问题） */
+  /** 匹配 token.xxx 属性访问模式的正则（源字符串，用于每次构造避免全局状态问题） */
   private static readonly PROPERTY_PATTERN =
-    /\b(token|theme)\.([a-zA-Z][a-zA-Z0-9]*)\b/g;
+    /\btoken\.([a-zA-Z][a-zA-Z0-9]*)\b/g;
 
   /** 支持的语言类型 */
   private static readonly SUPPORTED_LANGUAGES = [
@@ -101,7 +101,7 @@ export class JsTokenScanner {
       let match: RegExpExecArray | null;
 
       while ((match = pattern.exec(lineText)) !== null) {
-        const camelName = match[2];
+        const camelName = match[1];
         const cssName = TokenNameConverter.jsToCss(camelName);
 
         // 过滤 Registry 中不存在的 token
@@ -112,7 +112,7 @@ export class JsTokenScanner {
         const startIndex = match.index;
         const fullMatch = match[0];
 
-        // camelCase 名称在行中的起始位置（跳过 "token." 或 "theme." 前缀）
+        // camelCase 名称在行中的起始位置（跳过 "token." 前缀）
         const tokenStart = startIndex + fullMatch.lastIndexOf(camelName);
         const tokenEnd = tokenStart + camelName.length;
 

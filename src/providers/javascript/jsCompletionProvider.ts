@@ -8,7 +8,7 @@ import { CompletionItemBuilder } from '@/providers/completionItemBuilder';
 export class JsTokenCompletionProvider
   implements vscode.CompletionItemProvider
 {
-  private static readonly TRIGGER_PATTERN = /\b(token|theme)\.\w*$/;
+  private static readonly TRIGGER_PATTERN = /\btoken\.\w*$/;
 
   constructor(
     private readonly tokenRegistry: TokenRegistry,
@@ -31,7 +31,7 @@ export class JsTokenCompletionProvider
     }
 
     // 计算替换范围（覆盖用户已输入的部分，如 token.col 中的 col）
-    const dotMatch = textBeforeCursor.match(/\b(?:token|theme)\.(\w*)$/);
+    const dotMatch = textBeforeCursor.match(/\btoken\.(\w*)$/);
     let replaceRange: vscode.Range | undefined;
     if (dotMatch) {
       const typedLength = dotMatch[1].length;

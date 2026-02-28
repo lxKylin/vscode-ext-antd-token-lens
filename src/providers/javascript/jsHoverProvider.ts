@@ -4,8 +4,7 @@ import { HoverContentBuilder } from '@/providers/hoverContentBuilder';
 import { TokenNameConverter } from '@/utils/tokenNameConverter';
 
 export class JsTokenHoverProvider implements vscode.HoverProvider {
-  private static readonly HOVER_PATTERN =
-    /\b(token|theme)\.([a-zA-Z][a-zA-Z0-9]*)/;
+  private static readonly HOVER_PATTERN = /\btoken\.([a-zA-Z][a-zA-Z0-9]*)/;
 
   constructor(private readonly hoverContentBuilder: HoverContentBuilder) {}
 
@@ -32,8 +31,8 @@ export class JsTokenHoverProvider implements vscode.HoverProvider {
       return undefined;
     }
 
-    // match[1] = 'token' | 'theme'，match[2] = camelCase 名（如 colorPrimary）
-    const camelName = match[2];
+    // match[1] = camelCase 名（如 colorPrimary）
+    const camelName = match[1];
     const cssName = TokenNameConverter.jsToCss(camelName);
     // 查找时用 CSS 名，展示时保留原始 camelCase 名
     const content = this.hoverContentBuilder.build(cssName, camelName);
