@@ -52,7 +52,7 @@ When developing with Ant Design v5/v6, CSS Tokens (like `--ant-color-primary`) a
 
 ## Features
 
-### ✅ Completed (Phase 1 + Phase 2 + Phase 3 + Phase 4)
+### ✅ Completed (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5)
 
 #### Phase 1: Token Data Management
 
@@ -97,6 +97,40 @@ When developing with Ant Design v5/v6, CSS Tokens (like `--ant-color-primary`) a
 - ✅ **Highly Configurable**: Verbosity level, recent usage, and more
 
 ![Example 4 - Smart Auto-completion](./images/example-4.png)
+
+### ✅ Phase 5: JavaScript/TypeScript Token Support (v0.2.0)
+
+- ✅ **Color Decoration**: Highlights `token.colorPrimary` with the actual color (same style as CSS tokens)
+- ✅ **Hover Preview**: Hover over any `token.xxx` to see color swatch, value, description, and category
+- ✅ **Auto Completion**: Type `token.` to get camelCase token name suggestions with color previews
+- ✅ **Smart Filtering**: Only existing tokens in the registry are matched — no false positives
+- ✅ **Configurable**: Controlled by `antdToken.enableJsSupport` setting
+
+**Supported languages**: `javascript`, `javascriptreact`, `typescript`, `typescriptreact`
+
+**Example**:
+
+```tsx
+import { theme } from 'antd';
+const { useToken } = theme;
+
+const App = () => {
+  const { token } = useToken();
+  return <div style={{ color: token.colorPrimary }}>Hello World</div>;
+};
+```
+
+Demo：
+
+![Example 5 - useToken Visualization](./images/example-5-useToken.png)
+
+![Example 6 - useToken Color Completion](./images/example-6-useToken.png)
+
+![Example 7 - useToken Non-color Completion](./images/example-7-useToken.png)
+
+Alias Demo
+
+![Example 8 - alias](./images/example-8-alias.png)
 
 ## Usage Examples
 
@@ -197,9 +231,18 @@ Search for "antdToken" in VS Code settings:
   "antdToken.showRecentTokensFirst": true, // Recently used tokens first
   "antdToken.maxRecentTokens": 10, // Number of recent tokens to keep
   "antdToken.enableCategoryGroups": false, // Group by category display (e.g. Color, Spacing)
-  "antdToken.showCompletionIcons": true // Show color icons
+  "antdToken.showCompletionIcons": true, // Show color icons
+
+  // JavaScript/TypeScript Token Support
+  "antdToken.enableJsSupport": true // Enable Token support in JS/TS files
 }
 ```
+
+### Configuration Reference
+
+| Setting                     | Type      | Default | Description                                         |
+| --------------------------- | --------- | ------- | --------------------------------------------------- |
+| `antdToken.enableJsSupport` | `boolean` | `true`  | Enable Token support in JavaScript/TypeScript files |
 
 ## License
 
