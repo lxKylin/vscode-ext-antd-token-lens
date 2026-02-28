@@ -57,11 +57,11 @@ export const TOKEN_DESCRIPTIONS: Record<string, string> = {
   '--ant-font-size-sm': '小号字体',
   '--ant-font-size-lg': '大号字体',
   '--ant-font-size-xl': '特大号字体',
-  '--ant-font-size-heading-1': '一级标题字体大小',
-  '--ant-font-size-heading-2': '二级标题字体大小',
-  '--ant-font-size-heading-3': '三级标题字体大小',
-  '--ant-font-size-heading-4': '四级标题字体大小',
-  '--ant-font-size-heading-5': '五级标题字体大小',
+  '--ant-font-size-heading-1': '一级标题',
+  '--ant-font-size-heading-2': '二级标题',
+  '--ant-font-size-heading-3': '三级标题',
+  '--ant-font-size-heading-4': '四级标题',
+  '--ant-font-size-heading-5': '五级标题',
 
   // 行高
   '--ant-line-height': '基础行高',

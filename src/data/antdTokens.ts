@@ -101,6 +101,24 @@ export function isColorValue(value: string): boolean {
 export function inferTokenCategory(name: string): TokenCategory {
   const lowerName = name.toLowerCase();
 
+  // 尺寸相关（优先于颜色，避免 --ant-font-size-heading-1 被 /-\d+$/ 误判为颜色）
+  if (
+    lowerName.includes('size') ||
+    lowerName.includes('width') ||
+    lowerName.includes('height') ||
+    lowerName.includes('padding') ||
+    lowerName.includes('margin') ||
+    lowerName.includes('radius') ||
+    lowerName.includes('control')
+  ) {
+    return 'size';
+  }
+
+  // 字体相关（优先于颜色，同理）
+  if (lowerName.includes('font')) {
+    return 'font';
+  }
+
   // 颜色相关
   if (
     lowerName.includes('color') ||
@@ -120,24 +138,6 @@ export function inferTokenCategory(name: string): TokenCategory {
     lowerName.match(/-\d+$/) // 颜色梯度，如 --ant-blue-1
   ) {
     return 'color';
-  }
-
-  // 尺寸相关
-  if (
-    lowerName.includes('size') ||
-    lowerName.includes('width') ||
-    lowerName.includes('height') ||
-    lowerName.includes('padding') ||
-    lowerName.includes('margin') ||
-    lowerName.includes('radius') ||
-    lowerName.includes('control')
-  ) {
-    return 'size';
-  }
-
-  // 字体相关
-  if (lowerName.includes('font')) {
-    return 'font';
   }
 
   // 线条相关

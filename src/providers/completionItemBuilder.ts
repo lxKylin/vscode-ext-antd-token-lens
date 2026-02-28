@@ -86,6 +86,16 @@ export class CompletionItemBuilder {
       description = `⏱️ ${description}`;
     }
 
+    // 对非颜色类 token，在 description 中追加具体值
+    // 颜色类 token 已通过 detail 字段显示色块，无需重复
+    if (
+      tokenInfo.value &&
+      tokenInfo.category !== 'color' &&
+      tokenInfo.category !== 'bg'
+    ) {
+      description = `${description}-${tokenInfo.value}`;
+    }
+
     return {
       label,
       description
@@ -118,7 +128,7 @@ export class CompletionItemBuilder {
       return undefined;
     }
 
-    // 对于颜色类型，必须返回有效的颜色值
+    // 对于颜色类型，必须返回有效的颜色值（VS Code 据此渲染色块）
     if (
       (tokenInfo.category === 'color' || tokenInfo.category === 'bg') &&
       tokenInfo.value
@@ -127,8 +137,8 @@ export class CompletionItemBuilder {
       return formats?.hex ?? tokenInfo.value;
     }
 
-    // 其他类型直接返回 value
-    return tokenInfo.value;
+    // 非颜色类型：值已在 label description 中展示，detail 留空保持列表简洁
+    return undefined;
   }
 
   /**
