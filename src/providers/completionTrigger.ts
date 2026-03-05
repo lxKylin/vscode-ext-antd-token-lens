@@ -198,8 +198,8 @@ export class CompletionTrigger {
         return true;
       }
 
-      // 输入 ( 且符合 Tailwind 类模式（如 bg-(）
-      if (triggerChar === '(' && /[\w-]+\($/.test(textBeforeCursor)) {
+      // 输入 ( 且符合 Tailwind 类模式（如 bg-(），要求 ( 前面紧跟 -
+      if (triggerChar === '(' && /-\($/.test(textBeforeCursor)) {
         return true;
       }
 
