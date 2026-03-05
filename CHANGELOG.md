@@ -4,6 +4,10 @@ All notable changes to the "ant-design-token-lens" extension will be documented 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.1] - 2026-03-05
+
+- 修复任意字母+ ( 即可触发补全
+
 ## [0.2.0] - 2026-02-28
 
 - JavaScript/TypeScript Token 支持（`token.colorPrimary`，`token`支持别名）
