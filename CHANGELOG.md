@@ -4,6 +4,22 @@ All notable changes to the "ant-design-token-lens" extension will be documented 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.0] - 2026-03-14
+
+### Added
+
+- 新增非颜色 Token 行内数值展示能力，支持在编辑器中直接显示 `size`、`font`、`motion`、`opacity`、`zIndex` 等 Token 的当前值
+- 新增配置项 `antdToken.valueDecorator.enabled`
+- 新增配置项 `antdToken.valueDecorator.position`
+- 新增配置项 `antdToken.valueDecorator.maxLength`
+- 新增配置项 `antdToken.valueDecorator.categories`
+- 新增配置项 `antdToken.valueDecorator.mode`
+
+### Changed
+
+- 装饰器体系扩展为可组合模式，颜色装饰与非颜色值装饰可同时工作
+- 非颜色 Token 在 CSS 与 JavaScript/TypeScript 场景中复用同一套展示与格式化逻辑
+
 ## [0.2.1] - 2026-03-05
 
 - 修复任意字母+ ( 即可触发补全

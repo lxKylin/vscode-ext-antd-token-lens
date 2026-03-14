@@ -12,10 +12,12 @@ import {
 import { TokenScanner } from './tokenManager/tokenScanner';
 import { ColorDecorator } from './providers/colorDecorator';
 import { DocumentDecorationManager } from './providers/documentDecorationManager';
+import { ValueDecorator } from './providers/valueDecorator';
 import { AntdTokenHoverProvider } from './providers/hoverProvider';
 import { AntdTokenCompletionProvider } from './providers/completionProvider';
 import { HoverContentBuilder } from './providers/hoverContentBuilder';
 import { CompletionIcons } from './utils/completionIcons';
+import { loadBuiltinTokens } from './data/antdTokens';
 import { JsTokenScanner } from './tokenManager/jsTokenScanner';
 import { JsTokenHoverProvider } from './providers/javascript/jsHoverProvider';
 import { JsTokenCompletionProvider } from './providers/javascript/jsCompletionProvider';
@@ -41,8 +43,21 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   try {
-    // 初始化 Token 管理模块（现在使用 SourceManager）
-    await initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
+    const isTestMode = context.extensionMode === vscode.ExtensionMode.Test;
+
+    // 测试环境只加载内置 Token，避免完整数据源/自动扫描链路拖慢扩展主机启动。
+    if (isTestMode) {
+      tokenRegistry.clear();
+      const builtinTokens = await loadBuiltinTokens(
+        context.asAbsolutePath('out/assets/css')
+      );
+      tokenRegistry.registerBatch([
+        ...builtinTokens.light,
+        ...builtinTokens.dark
+      ]);
+    } else {
+      await initializeTokenRegistry(context.asAbsolutePath('out/assets/css'));
+    }
     console.log('Token Registry initialized successfully');
     console.log(`- Total tokens: ${tokenRegistry.size}`);
     console.log(`- Unique token names: ${tokenRegistry.uniqueSize}`);
@@ -53,37 +68,43 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // 创建装饰器
     const scanner = new TokenScanner();
-    const decorator = new ColorDecorator(tokenRegistry, themeManager);
+    if (!isTestMode) {
+      const colorDecorator = new ColorDecorator(tokenRegistry, themeManager);
+      const valueDecorator = new ValueDecorator(tokenRegistry, themeManager);
 
-    // 创建装饰管理器
-    decorationManager = new DocumentDecorationManager(scanner, decorator);
+      // 创建装饰管理器
+      decorationManager = new DocumentDecorationManager(scanner, [
+        colorDecorator,
+        valueDecorator
+      ]);
 
-    // 监听主题切换，自动刷新装饰
-    context.subscriptions.push(
-      themeManager.onThemeChange(() => {
-        decorationManager?.refresh();
-      })
-    );
-
-    // 监听数据源变化，刷新装饰和补全
-    if (sourceManager) {
+      // 监听主题切换，自动刷新装饰
       context.subscriptions.push(
-        sourceManager.onDidSourcesChange(() => {
-          console.log('[Extension] Sources changed, refreshing...');
-
-          // 刷新所有编辑器的装饰
+        themeManager.onThemeChange(() => {
           decorationManager?.refresh();
-
-          // 清空补全缓存
-          completionProvider?.clearCache();
         })
       );
+
+      // 监听数据源变化，刷新装饰和补全
+      if (sourceManager) {
+        context.subscriptions.push(
+          sourceManager.onDidSourcesChange(() => {
+            console.log('[Extension] Sources changed, refreshing...');
+
+            // 刷新所有编辑器的装饰
+            decorationManager?.refresh();
+
+            // 清空补全缓存
+            completionProvider?.clearCache();
+          })
+        );
+      }
+
+      // 注册到上下文
+      context.subscriptions.push(decorationManager);
+
+      console.log('Color Decorator initialized successfully');
     }
-
-    // 注册到上下文
-    context.subscriptions.push(decorationManager);
-
-    console.log('Color Decorator initialized successfully');
 
     // 创建 HoverProvider
     const hoverProvider = new AntdTokenHoverProvider(
@@ -169,18 +190,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // 2. 让 CSS decorationManager 跳过 JS/TS 文件（避免与 jsDecorationManager 共享 decorator 时互相覆盖）
       const jsLanguageIds = new Set(jsLanguages);
-      const cssOnlyScanner = {
-        isSupportedDocument: (doc: vscode.TextDocument) =>
-          !jsLanguageIds.has(doc.languageId) &&
-          scanner.isSupportedDocument(doc),
-        scanDocument: (doc: vscode.TextDocument) => scanner.scanDocument(doc),
-        scanRange: (doc: vscode.TextDocument, range: vscode.Range) =>
-          scanner.scanRange(doc, range),
-        scanLine: (text: string, lineNumber: number) =>
-          scanner.scanLine(text, lineNumber),
-        clearCache: (uri?: string) => scanner.clearCache(uri)
-      } as unknown as TokenScanner;
-      decorationManager?.updateScanner(cssOnlyScanner);
+      if (!isTestMode) {
+        const cssOnlyScanner = {
+          isSupportedDocument: (doc: vscode.TextDocument) =>
+            !jsLanguageIds.has(doc.languageId) &&
+            scanner.isSupportedDocument(doc),
+          scanDocument: (doc: vscode.TextDocument) => scanner.scanDocument(doc),
+          scanRange: (doc: vscode.TextDocument, range: vscode.Range) =>
+            scanner.scanRange(doc, range),
+          scanLine: (text: string, lineNumber: number) =>
+            scanner.scanLine(text, lineNumber),
+          clearCache: (uri?: string) => scanner.clearCache(uri)
+        } as unknown as TokenScanner;
+        decorationManager?.updateScanner(cssOnlyScanner);
+      }
 
       // 3. 创建合并扫描器：对 JS/TS 文件同时识别 var(--ant-xxx) 和 token.xxx 两种模式
       const jsCombinedScanner = {
@@ -200,54 +223,65 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       } as unknown as TokenScanner;
 
-      // 4. 颜色装饰：使用合并扫描器
-      const jsDm = new DocumentDecorationManager(jsCombinedScanner, decorator);
-      jsDecorationManager = jsDm;
-      jsDisposables.push(jsDm);
+      const decorationDisposables: vscode.Disposable[] = [];
 
-      // 主题切换时刷新 JS 装饰
-      jsDisposables.push(
-        themeManager.onThemeChange(() => {
-          jsScanner.clearCache();
-          jsDecorationManager?.refresh();
-        })
-      );
-
-      // 数据源变化时清缓存
-      if (sourceManager) {
-        jsDisposables.push(
-          sourceManager.onDidSourcesChange(() => {
+      if (!isTestMode) {
+        const jsColorDecorator = new ColorDecorator(
+          tokenRegistry,
+          themeManager
+        );
+        const jsValueDecorator = new ValueDecorator(
+          tokenRegistry,
+          themeManager
+        );
+        const jsDm = new DocumentDecorationManager(jsCombinedScanner, [
+          jsColorDecorator,
+          jsValueDecorator
+        ]);
+        jsDecorationManager = jsDm;
+        decorationDisposables.push(
+          jsDm,
+          themeManager.onThemeChange(() => {
             jsScanner.clearCache();
             jsDecorationManager?.refresh();
           })
         );
+
+        if (sourceManager) {
+          decorationDisposables.push(
+            sourceManager.onDidSourcesChange(() => {
+              jsScanner.clearCache();
+              jsDecorationManager?.refresh();
+            })
+          );
+        }
       }
 
-      // 5. Hover Provider
-      const jsHoverProvider = new JsTokenHoverProvider(hoverContentBuilder);
-      for (const lang of jsLanguages) {
-        jsDisposables.push(
-          vscode.languages.registerHoverProvider(
-            { scheme: 'file', language: lang },
-            jsHoverProvider
-          )
-        );
-      }
+      const hoverDisposables = jsLanguages.map((lang) =>
+        vscode.languages.registerHoverProvider(
+          { scheme: 'file', language: lang },
+          new JsTokenHoverProvider(hoverContentBuilder)
+        )
+      );
 
-      // 4. Completion Provider（触发字符 "."）
       const jsCompletionProvider = new JsTokenCompletionProvider(
         tokenRegistry,
         themeManager
       );
-      for (const lang of jsLanguages) {
-        jsDisposables.push(
-          vscode.languages.registerCompletionItemProvider(
-            { scheme: 'file', language: lang },
-            jsCompletionProvider,
-            '.'
-          )
-        );
-      }
+      const completionDisposables = jsLanguages.map((lang) =>
+        vscode.languages.registerCompletionItemProvider(
+          { scheme: 'file', language: lang },
+          jsCompletionProvider,
+          '.'
+        )
+      );
+
+      jsDisposables = [
+        ...jsDisposables,
+        ...decorationDisposables,
+        ...hoverDisposables,
+        ...completionDisposables
+      ];
 
       console.log('JS/TS Token support initialized');
     }
@@ -260,9 +294,8 @@ export async function activate(context: vscode.ExtensionContext) {
       initJsSupport();
     }
 
-    // 监听配置变化
-    context.subscriptions.push(
-      vscode.workspace.onDidChangeConfiguration((e) => {
+    const configChangeDisposable = vscode.workspace.onDidChangeConfiguration(
+      (e) => {
         if (e.affectsConfiguration('antdToken')) {
           completionProvider?.clearCache();
           console.log('Completion cache cleared due to config change');
@@ -282,15 +315,14 @@ export async function activate(context: vscode.ExtensionContext) {
         if (e.affectsConfiguration('antdToken.colorDecorator.enabled')) {
           jsDecorationManager?.refresh();
         }
-      })
+      }
     );
 
-    // 监听主题变化清空补全缓存
-    context.subscriptions.push(
-      themeManager.onThemeChange(() => {
-        completionProvider?.clearCache();
-      })
-    );
+    const themeCacheDisposable = themeManager.onThemeChange(() => {
+      completionProvider?.clearCache();
+    });
+
+    context.subscriptions.push(configChangeDisposable, themeCacheDisposable);
   } catch (error) {
     console.error('Failed to initialize Token Registry:', error);
     vscode.window.showErrorMessage(
@@ -298,16 +330,12 @@ export async function activate(context: vscode.ExtensionContext) {
     );
   }
 
-  // 注册命令：刷新装饰
-  context.subscriptions.push(
+  const commandDisposables = [
     vscode.commands.registerCommand('antdToken.refreshDecorations', () => {
       decorationManager?.refresh();
+      jsDecorationManager?.refresh();
       vscode.window.showInformationMessage('Ant Design Token 装饰已刷新');
-    })
-  );
-
-  // 注册命令：切换装饰器
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand('antdToken.toggleDecorator', () => {
       const config = vscode.workspace.getConfiguration('antdToken');
       const enabled = config.get('colorDecorator.enabled', true);
@@ -317,19 +345,15 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.ConfigurationTarget.Global
       );
 
-      // 立即刷新装饰
       if (decorationManager) {
         decorationManager.refresh();
       }
+      jsDecorationManager?.refresh();
 
       vscode.window.showInformationMessage(
         `Ant Design Token 装饰器已${!enabled ? '启用' : '禁用'}`
       );
-    })
-  );
-
-  // 命令：复制 Token 值
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand(
       'antdToken.copyTokenValue',
       (tokenName: string) => {
@@ -341,36 +365,27 @@ export async function activate(context: vscode.ExtensionContext) {
           vscode.window.showInformationMessage(`已复制: ${tokenInfo.value}`);
         }
       }
-    )
-  );
-
-  // 命令：查找所有引用
-  context.subscriptions.push(
+    ),
     vscode.commands.registerCommand(
       'antdToken.findReferences',
       async (tokenName?: string) => {
         let targetToken = tokenName;
 
-        // 如果没有提供 token 名称，尝试从当前编辑器选区获取，或者让用户输入
         if (!targetToken) {
           const editor = vscode.window.activeTextEditor;
           if (editor) {
             const selection = editor.document.getText(editor.selection);
-            // 简单的正则检查，看是否看起来像一个 token
             if (selection && selection.trim().length > 0) {
-              // 如果选中的是完整的 var(--token)，提取 token 名
               const varMatch = selection.match(/var\(([^)]+)\)/);
               if (varMatch) {
                 targetToken = varMatch[1];
               } else {
-                // 假设选中的就是 token 名 (例如 --ant-primary-color)
                 targetToken = selection.trim();
               }
             }
           }
         }
 
-        // 如果还是没有获取到，弹出输入框让用户输入
         if (!targetToken) {
           targetToken = await vscode.window.showInputBox({
             placeHolder: '输入 Token 名称 (例如 --ant-color-primary)',
@@ -380,8 +395,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         if (targetToken) {
-          // 在工作区中搜索该 Token 的所有使用
-          // 如果用户输入的已经是 var(...) 格式，就不再包裹
           const query = targetToken.startsWith('var(')
             ? targetToken
             : `var(${targetToken})`;
@@ -392,41 +405,26 @@ export async function activate(context: vscode.ExtensionContext) {
           });
         }
       }
-    )
-  );
-
-  // 命令：切换主题预览
-  context.subscriptions.push(
+    ),
     vscode.commands.registerCommand('antdToken.toggleThemePreview', () => {
       const currentTheme = themeManager.getCurrentTheme();
       const newTheme = currentTheme === 'light' ? 'dark' : 'light';
       themeManager.setTheme(newTheme);
 
       vscode.window.showInformationMessage(`已切换到 ${newTheme} 主题预览`);
-    })
-  );
-
-  // 命令：刷新 Token 数据
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand('antdToken.refreshTokens', async () => {
-      // 使用 SourceManager 重新加载数据
       const sourceManager = getSourceManager();
       if (sourceManager) {
         await sourceManager.reload();
       }
 
-      // 刷新所有装饰
       decorationManager?.refresh();
-
-      // 清空补全缓存
+      jsDecorationManager?.refresh();
       completionProvider?.clearCache();
 
       vscode.window.showInformationMessage('Token 数据已刷新');
-    })
-  );
-
-  // 命令：重新加载 Token 数据源
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand('antdToken.reloadSources', async () => {
       const sourceManager = getSourceManager();
       if (sourceManager) {
@@ -435,11 +433,7 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         vscode.window.showWarningMessage('数据源管理器未初始化');
       }
-    })
-  );
-
-  // 命令：查看 Token 数据源
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand('antdToken.showSources', () => {
       const sourceManager = getSourceManager();
       if (!sourceManager) {
@@ -458,11 +452,7 @@ export async function activate(context: vscode.ExtensionContext) {
         title: 'Token 数据源',
         placeHolder: '当前加载的数据源列表'
       });
-    })
-  );
-
-  // 命令：重新扫描 Token 文件
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand('antdToken.rescanTokenFiles', async () => {
       const autoScanner = getAutoScanner();
       if (autoScanner) {
@@ -471,26 +461,20 @@ export async function activate(context: vscode.ExtensionContext) {
       } else {
         vscode.window.showWarningMessage('自动扫描器未初始化');
       }
-    })
-  );
-
-  // 注册补全项选择命令
-  context.subscriptions.push(
+    }),
     vscode.commands.registerCommand(
       'antdToken.onCompletionItemSelected',
       (tokenName: string) => {
         completionProvider?.recordTokenUsage(tokenName);
       }
-    )
-  );
-
-  // 注册清空最近使用记录命令
-  context.subscriptions.push(
+    ),
     vscode.commands.registerCommand('antdToken.clearRecentTokens', () => {
       completionProvider?.clearRecentTokens();
       vscode.window.showInformationMessage('已清空最近使用的 Token 记录');
     })
-  );
+  ];
+
+  context.subscriptions.push(...commandDisposables);
 }
 
 // This method is called when your extension is deactivated

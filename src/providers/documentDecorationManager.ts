@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { TokenScanner } from '@/tokenManager/tokenScanner';
-import { ColorDecorator } from './colorDecorator';
 import { Config } from '@/utils/config';
-import { debounce, PerformanceMonitor } from '@/utils/performance';
+import { PerformanceMonitor } from '@/utils/performance';
+import { TokenDecorator } from './tokenDecorator';
 
 /**
  * 文档装饰管理器
@@ -12,10 +12,11 @@ export class DocumentDecorationManager {
   private readonly disposables: vscode.Disposable[] = [];
   private updateTimeout: NodeJS.Timeout | undefined;
   private readonly UPDATE_DELAY = 300; // 防抖延迟（毫秒）
+  private readonly INITIAL_UPDATE_DELAY = 300;
 
   constructor(
     private scanner: TokenScanner,
-    private readonly decorator: ColorDecorator
+    private readonly decorators: TokenDecorator[]
   ) {
     this.initialize();
   }
@@ -53,40 +54,42 @@ export class DocumentDecorationManager {
     // 监听配置变化
     this.disposables.push(
       Config.onConfigChange((event) => {
-        if (event.affectsConfiguration('antdToken.colorDecorator')) {
+        if (
+          this.decorators.some((decorator) =>
+            event.affectsConfiguration(decorator.configurationSection)
+          )
+        ) {
           this.refreshAllEditors();
         }
       })
     );
 
-    // 延迟初始化，确保配置已加载
+    // 延迟初始化，确保配置已加载，同时避免在激活阶段集中扫描所有编辑器。
     setTimeout(() => {
-      // 初始化当前编辑器
-      if (vscode.window.activeTextEditor) {
-        this.updateEditor(vscode.window.activeTextEditor);
-      }
+      const editors = Array.from(
+        new Set([
+          ...vscode.window.visibleTextEditors,
+          ...(vscode.window.activeTextEditor
+            ? [vscode.window.activeTextEditor]
+            : [])
+        ])
+      );
 
-      // 初始化所有可见编辑器
-      vscode.window.visibleTextEditors.forEach((editor) => {
-        this.updateEditor(editor);
+      editors.forEach((editor, index) => {
+        setTimeout(() => {
+          this.updateEditor(editor);
+        }, index * 25);
       });
-    }, 100);
+    }, this.INITIAL_UPDATE_DELAY);
   }
 
   /**
    * 更新编辑器装饰
    */
   private updateEditor(editor: vscode.TextEditor): void {
-    // 检查是否启用装饰器
-    const enabled = Config.getDecoratorEnabled();
-
-    if (!enabled) {
-      this.decorator.clear(editor);
-      return;
-    }
-
     // 检查是否支持该文件类型
     if (!this.scanner.isSupportedDocument(editor.document)) {
+      this.decorators.forEach((decorator) => decorator.clear(editor));
       return;
     }
 
@@ -95,7 +98,14 @@ export class DocumentDecorationManager {
       `updateEditor:${editor.document.fileName}`,
       () => {
         const matches = this.scanner.scanDocument(editor.document);
-        this.decorator.decorate(editor, matches);
+        this.decorators.forEach((decorator) => {
+          if (!decorator.isEnabled()) {
+            decorator.clear(editor);
+            return;
+          }
+
+          decorator.decorate(editor, matches);
+        });
       }
     );
   }
@@ -118,7 +128,7 @@ export class DocumentDecorationManager {
    */
   private refreshAllEditors(): void {
     // 清除装饰器缓存
-    this.decorator.refresh();
+    this.decorators.forEach((decorator) => decorator.refresh());
 
     // 重新装饰所有可见编辑器
     vscode.window.visibleTextEditors.forEach((editor) => {
@@ -149,6 +159,6 @@ export class DocumentDecorationManager {
       clearTimeout(this.updateTimeout);
     }
     this.disposables.forEach((d) => d.dispose());
-    this.decorator.dispose();
+    this.decorators.forEach((decorator) => decorator.dispose());
   }
 }

@@ -23,9 +23,9 @@ suite('Token Management Integration Test', () => {
     themeManager.dispose();
   });
 
-  test('load and query tokens', () => {
+  test('load and query tokens', async () => {
     // 加载内置 Token
-    const tokens = loadBuiltinTokens(
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
 
@@ -56,8 +56,8 @@ suite('Token Management Integration Test', () => {
     assert.strictEqual(darkPrimary?.isColor, true);
   });
 
-  test('theme switch updates token context', (done) => {
-    const tokens = loadBuiltinTokens(
+  test('theme switch updates token context', async (done) => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
@@ -81,8 +81,8 @@ suite('Token Management Integration Test', () => {
     themeManager.setTheme(targetTheme);
   });
 
-  test('token categorization', () => {
-    const tokens = loadBuiltinTokens(
+  test('token categorization', async () => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
@@ -117,8 +117,8 @@ suite('Token Management Integration Test', () => {
     assert.ok(motionTokens.length > 0, 'Should have motion tokens');
   });
 
-  test('token search functionality', () => {
-    const tokens = loadBuiltinTokens(
+  test('token search functionality', async () => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
@@ -139,8 +139,8 @@ suite('Token Management Integration Test', () => {
     assert.ok(blueResults.length > 0, 'Should find blue tokens');
   });
 
-  test('token description availability', () => {
-    const tokens = loadBuiltinTokens(
+  test('token description availability', async () => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
@@ -163,8 +163,8 @@ suite('Token Management Integration Test', () => {
     }
   });
 
-  test('performance with full token set', () => {
-    const tokens = loadBuiltinTokens(
+  test('performance with full token set', async () => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);
@@ -185,8 +185,8 @@ suite('Token Management Integration Test', () => {
     assert.ok(elapsed < 300, `Performance test failed: ${elapsed}ms > 300ms`);
   });
 
-  test('token source tracking', () => {
-    const tokens = loadBuiltinTokens(
+  test('token source tracking', async () => {
+    const tokens = await loadBuiltinTokens(
       path.resolve(__dirname, '../../assets/css')
     );
     registry.registerBatch([...tokens.light, ...tokens.dark]);

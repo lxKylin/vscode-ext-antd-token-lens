@@ -1,114 +1,109 @@
-# Ant Design Token Lens VS Code Extension
+# Ant Design Token Lens VS Code 插件
 
-A plugin that makes Ant Design Tokens "visible, understandable, and actionable" in VS Code.
+一款让 Ant Design Token 在 VS Code 中「可见、可理解、可操作」的插件。
 
-English | [简体中文](./README.zh-CN.md)
+[English](./README.md) | 简体中文
 
-## Plugin Demo
+## 插件效果
 
-![Example 1](./images/example-1.gif)
+![示例1](./images/example-1.gif)
 
-## Why You Need This Plugin
+## 为什么会需要这个插件
 
-Ant Design provides `useToken` and `getDesignToken` to access Design Tokens, but only in React runtime environments. In `.css`, `.less` and other style files, or when using `Tailwind CSS`, directly using these JS variables often has limitations.
+Ant Design 提供了 `useToken` 和 `getDesignToken` 来获取 Design Token，但仅限于 React 运行时环境。在 `.css`、`.less` 等样式文件中，或者结合 `Tailwind CSS` 开发时，直接使用这些 JS 变量往往存在限制。
 
-Especially with Design Tokens in `Tailwind CSS`, they usually **don't work**, and you're forced to fall back to **inline styles**.
+特别是 Design Token 在 `Tailwind CSS` 中通常**不生效**，只能退化为**行内样式**使用。
 
-As a `Tailwind CSS` user, I want to see token effects intuitively instead of dealing with abstract variable names. To solve this pain point and make tokens truly "visible" in VS Code, this plugin was created.
+作为一名 `Tailwind CSS` 使用者，我希望能直观地看到 Token 的实际效果，而不是面对抽象的变量名。为了解决这一痛点，让 Token 在 VS Code 中真实“可见”，本插件应运而生。
 
 ```html
-<!-- Doesn't work -->
+<!-- 不生效 -->
 <div className="{`text-[${token.colorPrimary}]`}"></div>
-<!-- Works -->
+<!-- 生效 -->
 <div className="text-[var(--ant-color-primary)]"></div>
 <div className="text-(--ant-color-primary)"></div>
 ```
 
-`Tailwind CSS` generates styles at Build Time, while `token.colorPrimary` is a Runtime `JavaScript` variable.
+`Tailwind CSS` 是在构建时（Build Time）生成样式的，而 `token.colorPrimary` 是一个 运行时（Runtime） 的 `JavaScript` 变量。
 
-Key Difference: Static string vs Dynamic interpolation
+核心区别：静态字符串 vs 动态插值
 
-#### Why does `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` work?
+#### `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` 为什么可行？
 
-- Build stage: `Tailwind` scanner sees the complete static string `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` in the source code. It doesn't need to execute JS to know you want an arbitrary value utility class.
-- Generate CSS: It extracts the content in brackets and directly generates CSS rules like:
-  ```css
-  .text-\[var\(--ant-color-primary\)\] {
-    color: var(--ant-color-primary);
-  }
-  ```
-- Runtime stage: The browser reads this CSS. By this time, Ant Design has already injected `--ant-color-primary` into the html or body tag via JS, and the browser successfully resolves the variable, making the color work.
+- 构建阶段：`Tailwind` 扫描器在源码中看到了 `text-[var(--ant-color-primary)]`/`text-(--ant-color-primary)` 这个完整的静态字符串。它不需要执行 JS，就知道你要一个任意值工具类。
+- 生成 CSS：它提取中括号里的内容，直接生成如下 CSS 规则：
+- 运行阶段：浏览器读取这行 CSS。此时 Ant Design 已经（通过 JS）把 `--ant-color-primary` 注入到了 html 或 body 标签上，浏览器成功解析了变量，颜色生效。
 
-#### Why doesn't `text-[${token.colorPrimary}]` work?
+#### `text-[${token.colorPrimary}]` 为什么不可行？
 
-- Build stage: `Tailwind` scanner sees `text-[${token.colorPrimary}]`. This is a template string with variables.
-- Cannot predict: `Tailwind` only does static text analysis and doesn't execute `JavaScript`. It cannot know whether `token.colorPrimary` will become `#1677ff` or `red`.
-- Result: Because it can't determine the class name, `Tailwind` gives up generating any CSS.
-- Runtime stage: Although React renders the class name as `text-[#1677ff]`, the corresponding CSS rule doesn't exist, so the color doesn't work.
+- 构建阶段：`Tailwind` 扫描器看到的是 `text-[${token.colorPrimary}]`。这是一个包含变量的模板字符串。
+- 无法预测：`Tailwind` 只进行静态文本分析，它不执行 `JavaScript`。它无法预知 `token.colorPrimary` 到底会变成 `#1677ff` 还是 `red`。
+- 结果：因为无法确定类名，`Tailwind` 放弃生成任何 CSS。
+- 运行阶段：虽然 React 把类名渲染成了 `text-[#1677ff]`，但对应的 CSS 规则根本不存在，所以颜色不生效。
 
-## Project Overview
+## 项目介绍
 
-When developing with Ant Design v5/v6, CSS Tokens (like `--ant-color-primary`) are abstract and developers can't intuitively see the actual color effects. This plugin aims to solve this pain point and make token usage more intuitive and efficient.
+在使用 Ant Design v5/v6 进行前端开发时，CSS Token（如 `--ant-color-primary`）是抽象的，开发者无法直观看到真实颜色效果。本插件旨在解决这个痛点，让 Token 使用更加直观和高效。
 
-## Features
+## 功能特性
 
-### ✅ Completed (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5)
+### ✅ 已完成（阶段1 + 阶段2 + 阶段3 + 阶段4 + 阶段5 + 阶段7）
 
-#### Phase 1: Token Data Management
+#### 阶段1：Token 数据管理
 
-- ✅ Token Data Management: Complete token registry and query system
-- ✅ Theme Management: Automatic Light/Dark theme detection and switching
-- ✅ High Performance: 10,000 queries take only 1ms
-- ✅ Type Safety: Complete TypeScript type definitions
-- ✅ Comprehensive Tests: 35 test cases
+- ✅ Token 数据管理：完整的 Token 注册表和查询系统
+- ✅ 主题管理：自动检测和切换 Light/Dark 主题
+- ✅ 高性能：10000 次查询仅需 1ms
+- ✅ 类型安全：完整的 TypeScript 类型定义
+- ✅ 完善测试：35 个测试用例
 
-#### Phase 2: Color Visualization
+#### 阶段2：颜色可视化
 
-- ✅ **Smart Scanning**: Automatically identifies `var(--ant-*)` Tokens in code
-- ✅ **Color Decorators**: Displays token colors directly in the editor
-- ✅ **Real-time Updates**: Automatically updates color display when editing code or switching themes
-- ✅ **Multiple Styles**: Square, circle, underline, background and other decoration styles
-- ✅ **Multi-file Support**: Supports CSS, Less, Sass, JavaScript, TypeScript, JSX/TSX, Vue, HTML
-- ✅ **High Performance**: Scans 1000 lines in < 50ms, supports large files
-- ✅ **Configurable**: Flexible style, position, and size configuration
+- ✅ **智能扫描**：自动识别代码中的 `var(--ant-*)` Token
+- ✅ **颜色装饰**：在编辑器中直接显示 Token 对应的颜色
+- ✅ **实时更新**：编辑代码或切换主题时自动更新颜色显示
+- ✅ **多样式支持**：方形、圆形、下划线、背景等多种装饰样式
+- ✅ **多文件支持**：支持 CSS、Less、Sass、JavaScript、TypeScript、JSX/TSX、Vue、HTML
+- ✅ **高性能**：1000 行文件扫描 < 50ms，支持大文件
+- ✅ **可配置**：灵活的样式、位置、大小配置
 
-![Example 2 - Color Visualization](./images/example-2.png)
+![示例2-颜色可视化](./images/example-2.png)
 
-#### Phase 3: Hover Information Tooltip
+#### 阶段3：Hover 信息提示
 
-- ✅ **Smart Hover Tooltip**: Shows detailed token information when hovering
-- ✅ **Multi-theme Comparison**: Displays colors for both Light and Dark themes
-- ✅ **Color Format Conversion**: Multiple formats including HEX, RGB, HSL
-- ✅ **Enhanced Color Preview**: Color blocks with borders for clarity
-- ✅ **Tiered Information Display**: Minimal, Normal, Detailed modes
-- ✅ **Quick Commands**: Copy value, find references, switch theme, etc.
-- ✅ **Performance Optimization**: Caching mechanism, debouncing, response < 100ms
+- ✅ **智能悬浮提示**：鼠标悬停显示 Token 详细信息
+- ✅ **多主题对比**：同时显示 Light 和 Dark 主题的颜色值
+- ✅ **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- ✅ **颜色预览增强**：带边框的颜色块，直观清晰
+- ✅ **分级信息展示**：Minimal、Normal、Detailed 三种模式
+- ✅ **快捷命令**：复制值、查找引用、切换主题等
+- ✅ **性能优化**：缓存机制、防抖处理，响应 < 100ms
 
-![Example 3 - Hover Information Tooltip](./images/example-3.png)
+![示例3-Hover信息提示](./images/example-3.png)
 
-#### Phase 4: Smart Auto-completion
+#### 阶段4：智能自动补全
 
-- ✅ **Smart Triggering**: Auto-complete appears when typing `var(--`, `--ant` or `-(--)`
-- ✅ **Context Aware**: Automatically selects the correct insertion format based on position
-- ✅ **Intelligent Sorting**: Recently used first, exact match first, category first
-- ✅ **Rich Information**: Shows token name, description, current value, color preview
-- ✅ **Performance Optimization**: Multi-level caching, incremental filtering, response < 200ms
-- ✅ **Snippet Support**: Automatically inserts `var()` syntax, supports fallback parameters
-- ✅ **Highly Configurable**: Verbosity level, recent usage, and more
+- ✅ **智能触发**：输入 `var(--` 或 `--ant` 或者 `-(-)` 自动弹出补全
+- ✅ **上下文感知**：根据位置自动选择正确的插入格式
+- ✅ **智能排序**：最近使用优先、完全匹配优先、分类优先
+- ✅ **丰富信息**：显示 Token 名称、描述、当前值、颜色预览
+- ✅ **性能优化**：多级缓存、增量过滤，响应 < 200ms
+- ✅ **Snippet 支持**：自动插入 `var()` 语法，支持 fallback 参数
+- ✅ **高度可配置**：详细程度、最近使用等多项配置
 
-![Example 4 - Smart Auto-completion](./images/example-4.png)
+![示例4-智能自动补全](./images/example-4.png)
 
-### ✅ Phase 5: JavaScript/TypeScript Token Support (v0.2.0)
+#### 阶段5：JavaScript/TypeScript Token 支持（v0.2.0）
 
-- ✅ **Color Decoration**: Highlights `token.colorPrimary` with the actual color (same style as CSS tokens)
-- ✅ **Hover Preview**: Hover over any `token.xxx` to see color swatch, value, description, and category
-- ✅ **Auto Completion**: Type `token.` to get camelCase token name suggestions with color previews
-- ✅ **Smart Filtering**: Only existing tokens in the registry are matched — no false positives
-- ✅ **Configurable**: Controlled by `antdToken.enableJsSupport` setting
+- ✅ **颜色装饰**：高亮显示 `token.colorPrimary` (别名可也) 对应的实际颜色（与 CSS Token 相同风格）
+- ✅ **Hover 预览**：悬停在 `token.xxx` 上即可查看颜色块、当前值、描述信息和分类
+- ✅ **代码补全**：输入 `token.` 后自动弹出 camelCase Token 名称建议，带颜色预览
+- ✅ **智能过滤**：只匹配注册表中实际存在的 Token，无误匹配
+- ✅ **可配置**：通过 `antdToken.enableJsSupport` 配置项控制
 
-**Supported languages**: `javascript`, `javascriptreact`, `typescript`, `typescriptreact`
+**支持语言**：`javascript`、`javascriptreact`、`typescript`、`typescriptreact`
 
-**Example**:
+**使用示例**：
 
 ```tsx
 import { theme } from 'antd';
@@ -120,73 +115,103 @@ const App = () => {
 };
 ```
 
-Demo：
+效果展示：
 
-![Example 5 - useToken Visualization](./images/example-5-useToken.png)
+![示例5-useToken可视化显示](./images/example-5-useToken.png)
 
-![Example 6 - useToken Color Completion](./images/example-6-useToken.png)
+![示例6-useToken颜色类补全](./images/example-6-useToken.png)
 
-![Example 7 - useToken Non-color Completion](./images/example-7-useToken.png)
+![示例7-useToken非颜色类补全](./images/example-7-useToken.png)
 
-Alias Demo
+别名展示：
 
-![Example 8 - alias](./images/example-8-alias.png)
+![示例8-alias](./images/example-8-alias.png)
 
-## Usage Examples
+#### 阶段6：非颜色 Token 直观展示（v0.3.0）
 
-### Color Visualization
+- ✅ **行内数值展示**：为 `size`、`font`、`motion`、`opacity`、`zIndex` 等非颜色 Token 直接显示当前值
+- ✅ **轻量尾注样式**：在 Token 前后追加弱化文本，不打断原有语法高亮与代码阅读
+- ✅ **智能格式化**：动画时长会换算为毫秒，透明度会补充百分比，例如 `0.2s · 200ms`、`0.65 · 65%`
+- ✅ **长度控制**：超长值会按配置自动截断，避免编辑器中出现过长尾注
+- ✅ **主题联动**：切换 light/dark 主题后，行内展示值会同步刷新
+- ✅ **CSS 与 JS/TS 共用**：`var(--ant-*)` 与 `token.xxx` 场景使用同一套非颜色值展示逻辑
+
+默认展示类别：`size`、`font`、`motion`、`opacity`、`zIndex`
+
+![示例9](./images/example-9.png)
+
+![示例9-1](./images/example-9-1.png)
+
+## 使用示例
+
+### 颜色可视化效果
 
 ```tsx
-/* Blue color block will display here → */
+/* 蓝色色块会显示在这里 → */
 <div className="text-(--ant-color-primary)"></div>
-// Equivalent to
+// 等价
 <div className="text-[var(--ant-color-primary)]"></div>
 ```
 
 ```css
 .button {
-  /* Blue color block will display here → */
+  /* 蓝色色块会显示在这里 → */
   color: var(--ant-color-primary);
 
-  /* Gray color block will display here → */
+  /* 灰色色块会显示在这里 → */
   background: var(--ant-color-bg-container);
 
-  /* Border color will also display → */
+  /* 边框颜色也会显示 → */
   border: 1px solid var(--ant-color-border);
 }
 ```
 
-### Supported File Types
+### 非颜色 Token 数值展示
 
-- **Style Files**: CSS, Less, Sass/Scss
-- **Script Files**: JavaScript, TypeScript
-- **Framework Files**: JSX, TSX (React), Vue
-- **Markup Files**: HTML
+```css
+.card {
+  padding: var(--ant-padding); /* 编辑器中会显示：16px */
+  border-radius: var(--ant-border-radius); /* 编辑器中会显示：6px */
+  transition-duration: var(
+    --ant-motion-duration-mid
+  ); /* 编辑器中会显示：0.2s · 200ms */
+  opacity: var(--ant-opacity-image); /* 编辑器中会显示：0.65 · 65% */
+}
+```
 
-### Hover Information Tooltip 🆕
+这类数值展示不会替代 Hover。行内尾注负责“扫一眼就知道值”，Hover 仍然负责展示完整信息与多主题对比。
 
-Hover over any `var(--ant-*)` token to see detailed information:
+### 支持的文件类型
 
-- **Token Name and Semantics**: Understand the token's purpose
-- **Current Theme Value**: View the actual value in the current theme
-- **Multi-theme Comparison**: Display values for both Light and Dark themes
-- **Color Format Conversion**: HEX, RGB, HSL and other formats
-- **Color Preview**: Intuitive color block display
-- **Quick Operations**: Copy value, find references, etc.
+- **样式文件**: CSS, Less, Sass/Scss
+- **脚本文件**: JavaScript, TypeScript
+- **框架文件**: JSX, TSX (React), Vue
+- **标记文件**: HTML
 
-#### Hover Example
+### Hover 信息提示 🆕
+
+将鼠标悬停在任何 `var(--ant-*)` Token 上，查看详细信息：
+
+- **Token 名称和语义**：了解 Token 的用途
+- **当前主题值**：查看当前主题下的实际值
+- **多主题对比**：同时显示 Light 和 Dark 主题的值
+- **颜色格式转换**：HEX、RGB、HSL 等多种格式
+- **颜色预览**：直观的颜色块显示
+- **快捷操作**：复制值、查找引用等
+
+#### Hover 示例
 
 ```css
 .button {
   color: var(--ant-color-primary);
-  /* Hover to see:
+  /* 悬停后显示：
      🎨 --ant-color-primary
-     Semantic: Brand primary color
-     Current Theme (light): 🟦 #1677ff
-     Multi-theme Comparison:
+     语义: 品牌主色
+     当前主题 (light): 🟦 #1677ff
+     多主题对比:
        - Light: 🟦 #1677ff
        - Dark: 🟦 #177ddc
-     Color Formats:
+     颜色格式:
        - HEX: #1677FF
        - RGB: rgb(22, 119, 255)
        - HSL: hsl(216, 100%, 54%)
@@ -194,55 +219,84 @@ Hover over any `var(--ant-*)` token to see detailed information:
 }
 ```
 
-### Available Commands
+### 可用命令
 
-Open the command palette (Cmd/Ctrl + Shift + P) and type:
+打开命令面板（Cmd/Ctrl + Shift + P），输入：
 
-- `Ant Design Token: Toggle Color Decorator` - Enable/disable color decorators
-- `Ant Design Token: Refresh Token Decorations` - Refresh all decorations
-- `Ant Design Token: Toggle Theme Preview` - Toggle theme preview (Shortcut: `Ctrl+Alt+T` / `Cmd+Alt+T`)
-- `Ant Design Token: Refresh Token Data` - Refresh token data (Shortcut: `Ctrl+Alt+R` / `Cmd+Alt+R`)
-- `Ant Design Token: Clear Recent Tokens` - Clear recent token usage history
+- `Ant Design Token: Toggle Color Decorator` - 启用/禁用颜色装饰器
+- `Ant Design Token: Refresh Token Decorations` - 刷新所有装饰
+- `Ant Design Token: Toggle Theme Preview` - 切换主题预览（快捷键：`Ctrl+Alt+T` / `Cmd+Alt+T`）
+- `Ant Design Token: Refresh Token Data` - 刷新 Token 数据（快捷键：`Ctrl+Alt+R` / `Cmd+Alt+R`）
+- `Ant Design Token: Clear Recent Tokens` - 清空最近使用的 Token 记录
 
-### Configuration Options
+### 配置选项
 
-Search for "antdToken" in VS Code settings:
+在 VS Code 设置中搜索 "antdToken"：
 
 ```json
 {
-  // Theme Mode
+  // 主题模式
   "antdToken.themeMode": "light", // "auto" | "light" | "dark"
 
-  // Color Decorators
+  // 颜色装饰器
   "antdToken.colorDecorator.enabled": true,
   "antdToken.colorDecorator.style": "background", // "square" | "circle" | "underline" | "background"
   "antdToken.colorDecorator.position": "before", // "before" | "after"
   "antdToken.colorDecorator.size": "medium", // "small" | "medium" | "large"
+  "antdToken.valueDecorator.enabled": true,
+  "antdToken.valueDecorator.position": "after", // "before" | "after"
+  "antdToken.valueDecorator.maxLength": 24,
+  "antdToken.valueDecorator.categories": [
+    "size",
+    "font",
+    "motion",
+    "opacity",
+    "zIndex"
+  ],
+  "antdToken.valueDecorator.mode": "compact", // "compact" | "full"
 
-  // Hover Tooltip
+  // Hover 提示
   "antdToken.enableHover": true,
-  "antdToken.showMultiTheme": true, // Show multi-theme comparison
-  "antdToken.showColorFormats": true, // Show color format conversion
+  "antdToken.showMultiTheme": true, // 显示多主题对比
+  "antdToken.showColorFormats": true, // 显示颜色格式转换
   "antdToken.hoverVerbosity": "normal", // "minimal" | "normal" | "detailed"
 
-  // Auto-completion
-  "antdToken.enableCompletion": true, // Enable auto-completion
+  // 自动补全
+  "antdToken.enableCompletion": true, // 启用自动补全
   "antdToken.completionDetailLevel": "normal", // "minimal" | "normal" | "detailed"
-  "antdToken.showRecentTokensFirst": true, // Recently used tokens first
-  "antdToken.maxRecentTokens": 10, // Number of recent tokens to keep
-  "antdToken.enableCategoryGroups": false, // Group by category display (e.g. Color, Spacing)
-  "antdToken.showCompletionIcons": true, // Show color icons
+  "antdToken.showRecentTokensFirst": true, // 最近使用的 Token 优先
+  "antdToken.maxRecentTokens": 10, // 记录最近使用的 Token 数量
+  "antdToken.enableCategoryGroups": false, // 按分类分组显示 (e.g. Color, Spacing)
+  "antdToken.showCompletionIcons": true, // 显示颜色图标
 
-  // JavaScript/TypeScript Token Support
-  "antdToken.enableJsSupport": true // Enable Token support in JS/TS files
+  // JavaScript/TypeScript Token 支持
+  "antdToken.enableJsSupport": true // 开启 JS/TS 文件中的 Token 支持
 }
 ```
 
-### Configuration Reference
+### 配置项说明
 
-| Setting                     | Type      | Default | Description                                         |
-| --------------------------- | --------- | ------- | --------------------------------------------------- |
-| `antdToken.enableJsSupport` | `boolean` | `true`  | Enable Token support in JavaScript/TypeScript files |
+| 配置项                                | 类型       | 默认值                            | 说明                                           |
+| ------------------------------------- | ---------- | --------------------------------- | ---------------------------------------------- |
+| `antdToken.enableJsSupport`           | `boolean`  | `true`                            | 开启 JavaScript/TypeScript 文件中的 Token 支持 |
+| `antdToken.valueDecorator.enabled`    | `boolean`  | `true`                            | 开启非颜色 Token 的行内数值展示                |
+| `antdToken.valueDecorator.position`   | `string`   | `after`                           | 控制数值显示在 Token 前或后                    |
+| `antdToken.valueDecorator.maxLength`  | `number`   | `24`                              | 限制行内展示值的最大长度                       |
+| `antdToken.valueDecorator.categories` | `string[]` | `size,font,motion,opacity,zIndex` | 限制允许显示数值的非颜色 Token 分类            |
+| `antdToken.valueDecorator.mode`       | `string`   | `compact`                         | 在紧凑模式与完整模式之间切换                   |
+
+### 非颜色 Token 配置建议
+
+- `antdToken.valueDecorator.enabled`
+  开关总入口。关闭后，所有非颜色 Token 的行内数值提示都会隐藏。
+- `antdToken.valueDecorator.position`
+  推荐默认使用 `after`。如果你更习惯让值显示在 Token 前面，可以改成 `before`。
+- `antdToken.valueDecorator.maxLength`
+  当阴影、行高或其他值过长时，用它限制展示长度，避免一整行被尾注撑满。
+- `antdToken.valueDecorator.categories`
+  如果你只关心尺寸和动画，可以删减为 `[`size`, `motion`]` 这类更小的集合。
+- `antdToken.valueDecorator.mode`
+  `compact` 适合日常编码，展示更短；`full` 会尽量保留更完整的原始值。
 
 ## License
 

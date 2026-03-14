@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
+import { TokenCategory } from '@/data/antdTokens';
 // 定义类型别名
 type HoverVerbosity = 'minimal' | 'normal' | 'detailed';
 type CompletionDetailLevel = 'minimal' | 'normal' | 'detailed';
+type ValueDecoratorMode = 'compact' | 'full';
 
 /**
  * 配置管理工具
@@ -41,6 +43,53 @@ export class Config {
     return vscode.workspace
       .getConfiguration('antdToken.colorDecorator')
       .get('size', 'medium');
+  }
+
+  /**
+   * 获取数值装饰器是否启用
+   */
+  static getValueDecoratorEnabled(): boolean {
+    return vscode.workspace
+      .getConfiguration('antdToken.valueDecorator')
+      .get('enabled', true);
+  }
+
+  /**
+   * 获取数值装饰位置
+   */
+  static getValueDecoratorPosition(): 'before' | 'after' {
+    return vscode.workspace
+      .getConfiguration('antdToken.valueDecorator')
+      .get('position', 'after');
+  }
+
+  /**
+   * 获取数值装饰最大长度
+   */
+  static getValueDecoratorMaxLength(): number {
+    return vscode.workspace
+      .getConfiguration('antdToken.valueDecorator')
+      .get('maxLength', 24);
+  }
+
+  /**
+   * 获取数值装饰显示模式
+   */
+  static getValueDecoratorMode(): ValueDecoratorMode {
+    return vscode.workspace
+      .getConfiguration('antdToken.valueDecorator')
+      .get('mode', 'compact') as ValueDecoratorMode;
+  }
+
+  /**
+   * 获取数值装饰启用的分类
+   */
+  static getValueDecoratorCategories(): TokenCategory[] {
+    return vscode.workspace
+      .getConfiguration('antdToken.valueDecorator')
+      .get<
+        TokenCategory[]
+      >('categories', ['size', 'font', 'motion', 'opacity', 'zIndex']);
   }
 
   /**

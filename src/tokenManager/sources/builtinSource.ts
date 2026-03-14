@@ -26,7 +26,7 @@ export class BuiltinTokenSource extends BaseTokenSource {
 
     try {
       // 加载内置 Token
-      const builtinTokens = loadBuiltinTokens(this.assetsPath);
+      const builtinTokens = await loadBuiltinTokens(this.assetsPath);
 
       // 转换为 ExtendedTokenInfo
       for (const token of [...builtinTokens.light, ...builtinTokens.dark]) {

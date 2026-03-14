@@ -4,7 +4,7 @@
   "publisher": "lxKylin",
   "displayName": "Ant Design Token Lens",
   "description": "A plugin that makes Ant Design Tokens 'visible, understandable, and actionable' in VS Code.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "license": "MIT",
   "engines": {
     "vscode": "^1.105.1"
@@ -144,6 +144,64 @@
           ],
           "default": "medium",
           "description": "颜色块大小"
+        },
+        "antdToken.valueDecorator.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用非颜色 Token 数值展示"
+        },
+        "antdToken.valueDecorator.position": {
+          "type": "string",
+          "enum": [
+            "before",
+            "after"
+          ],
+          "default": "after",
+          "description": "非颜色 Token 值显示位置"
+        },
+        "antdToken.valueDecorator.maxLength": {
+          "type": "number",
+          "default": 18,
+          "minimum": 4,
+          "maximum": 80,
+          "description": "非颜色 Token 值的最大展示长度"
+        },
+        "antdToken.valueDecorator.categories": {
+          "type": "array",
+          "default": [
+            "size",
+            "font",
+            "motion",
+            "opacity",
+            "zIndex"
+          ],
+          "description": "允许在编辑器内直接展示值的非颜色 Token 分类",
+          "items": {
+            "type": "string",
+            "enum": [
+              "size",
+              "font",
+              "line",
+              "motion",
+              "shadow",
+              "zIndex",
+              "opacity",
+              "other"
+            ]
+          }
+        },
+        "antdToken.valueDecorator.mode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "full"
+          ],
+          "default": "compact",
+          "enumDescriptions": [
+            "紧凑显示，适合日常阅读",
+            "尽量保留完整值"
+          ],
+          "description": "非颜色 Token 值的展示模式"
         },
         "antdToken.enableHover": {
           "type": "boolean",

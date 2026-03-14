@@ -171,8 +171,8 @@ export function inferTokenCategory(name: string): TokenCategory {
 /**
  * 加载内置的 Ant Design Token
  */
-export function loadBuiltinTokens(cssFolderPath: string): ThemeTokens {
-  const fs = require('node:fs');
+export function loadBuiltinTokens(cssFolderPath: string): Promise<ThemeTokens> {
+  const fs = require('node:fs/promises');
   const path = require('node:path');
   const {
     parseCSSVariablesFromSelectors
@@ -183,58 +183,59 @@ export function loadBuiltinTokens(cssFolderPath: string): ThemeTokens {
   const lightCssPath = path.join(cssFolderPath, 'antd-light-theme.css');
   const darkCssPath = path.join(cssFolderPath, 'antd-dark-theme.css');
 
-  // 读取 CSS 文件内容
-  const lightCssContent = fs.readFileSync(lightCssPath, 'utf-8');
-  const darkCssContent = fs.readFileSync(darkCssPath, 'utf-8');
+  return Promise.all([
+    fs.readFile(lightCssPath, 'utf-8'),
+    fs.readFile(darkCssPath, 'utf-8')
+  ]).then(([lightCssContent, darkCssContent]) => {
+    // 解析 CSS 变量（支持多种选择器）
+    const lightVariables: { name: string; value: string }[] =
+      parseCSSVariablesFromSelectors(lightCssContent, [
+        ':root',
+        '.css-var-root',
+        '.qz-css-var'
+      ]);
 
-  // 解析 CSS 变量（支持多种选择器）
-  const lightVariables: { name: string; value: string }[] =
-    parseCSSVariablesFromSelectors(lightCssContent, [
-      ':root',
-      '.css-var-root',
-      '.qz-css-var'
-    ]);
+    const darkVariables: { name: string; value: string }[] =
+      parseCSSVariablesFromSelectors(darkCssContent, [
+        ':root',
+        '.css-var-root',
+        '.qz-css-var'
+      ]);
 
-  const darkVariables: { name: string; value: string }[] =
-    parseCSSVariablesFromSelectors(darkCssContent, [
-      ':root',
-      '.css-var-root',
-      '.qz-css-var'
-    ]);
+    // 转换为 TokenInfo
+    const lightTokens: TokenInfo[] = lightVariables.map((variable) => {
+      const category = inferTokenCategory(variable.name);
+      const isColor = isColorValue(variable.value);
 
-  // 转换为 TokenInfo
-  const lightTokens: TokenInfo[] = lightVariables.map((variable) => {
-    const category = inferTokenCategory(variable.name);
-    const isColor = isColorValue(variable.value);
+      return {
+        name: variable.name,
+        value: variable.value,
+        theme: 'light',
+        category,
+        description: getTokenDescription(variable.name),
+        source: 'builtin',
+        isColor
+      };
+    });
+
+    const darkTokens: TokenInfo[] = darkVariables.map((variable) => {
+      const category = inferTokenCategory(variable.name);
+      const isColor = isColorValue(variable.value);
+
+      return {
+        name: variable.name,
+        value: variable.value,
+        theme: 'dark',
+        category,
+        description: getTokenDescription(variable.name),
+        source: 'builtin',
+        isColor
+      };
+    });
 
     return {
-      name: variable.name,
-      value: variable.value,
-      theme: 'light',
-      category,
-      description: getTokenDescription(variable.name),
-      source: 'builtin',
-      isColor
+      light: lightTokens,
+      dark: darkTokens
     };
   });
-
-  const darkTokens: TokenInfo[] = darkVariables.map((variable) => {
-    const category = inferTokenCategory(variable.name);
-    const isColor = isColorValue(variable.value);
-
-    return {
-      name: variable.name,
-      value: variable.value,
-      theme: 'dark',
-      category,
-      description: getTokenDescription(variable.name),
-      source: 'builtin',
-      isColor
-    };
-  });
-
-  return {
-    light: lightTokens,
-    dark: darkTokens
-  };
 }

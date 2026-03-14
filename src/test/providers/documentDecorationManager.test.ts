@@ -1,24 +1,53 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { DocumentDecorationManager } from '@/providers/documentDecorationManager';
+import { TokenDecorator } from '@/providers/tokenDecorator';
 import { TokenScanner } from '@/tokenManager/tokenScanner';
-import { ColorDecorator } from '@/providers/colorDecorator';
-import { TokenRegistry } from '@/tokenManager/tokenRegistry';
-import { ThemeManager } from '@/tokenManager/themeManager';
 
 suite('DocumentDecorationManager Test Suite', () => {
   let manager: DocumentDecorationManager;
   let scanner: TokenScanner;
-  let decorator: ColorDecorator;
-  let registry: TokenRegistry;
-  let themeManager: ThemeManager;
+  let decorators: TestDecorator[];
+
+  class TestDecorator implements TokenDecorator {
+    configurationSection: string;
+    decorateCalls = 0;
+    clearCalls = 0;
+    refreshCalls = 0;
+    disposeCalls = 0;
+
+    constructor(section: string) {
+      this.configurationSection = section;
+    }
+
+    decorate(): void {
+      this.decorateCalls += 1;
+    }
+
+    clear(): void {
+      this.clearCalls += 1;
+    }
+
+    refresh(): void {
+      this.refreshCalls += 1;
+    }
+
+    isEnabled(): boolean {
+      return true;
+    }
+
+    dispose(): void {
+      this.disposeCalls += 1;
+    }
+  }
 
   setup(() => {
-    registry = new TokenRegistry();
-    themeManager = new ThemeManager();
     scanner = new TokenScanner();
-    decorator = new ColorDecorator(registry, themeManager);
-    manager = new DocumentDecorationManager(scanner, decorator);
+    decorators = [
+      new TestDecorator('antdToken.colorDecorator'),
+      new TestDecorator('antdToken.valueDecorator')
+    ];
+    manager = new DocumentDecorationManager(scanner, decorators);
   });
 
   teardown(() => {
@@ -40,8 +69,10 @@ suite('DocumentDecorationManager Test Suite', () => {
     // 给装饰管理器一些时间来处理
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // 应该不抛出错误
-    assert.ok(true);
+    assert.ok(
+      decorators.every((decorator) => decorator.decorateCalls > 0),
+      'All decorators should be invoked for supported editors'
+    );
 
     // 清理
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
@@ -63,8 +94,10 @@ suite('DocumentDecorationManager Test Suite', () => {
     // 给装饰管理器一些时间来处理
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // 应该不抛出错误
-    assert.ok(true);
+    assert.ok(
+      decorators.every((decorator) => decorator.decorateCalls > 0),
+      'Decorators should still run after document changes'
+    );
 
     // 清理
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
@@ -83,8 +116,10 @@ suite('DocumentDecorationManager Test Suite', () => {
     // 给装饰管理器一些时间来处理
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // 应该不抛出错误
-    assert.ok(true);
+    assert.ok(
+      decorators.every((decorator) => decorator.refreshCalls > 0),
+      'Refresh should fan out to all decorators'
+    );
 
     // 清理
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
@@ -92,7 +127,9 @@ suite('DocumentDecorationManager Test Suite', () => {
 
   test('dispose cleans up resources', () => {
     manager.dispose();
-    // 应该不抛出错误
-    assert.ok(true);
+    assert.ok(
+      decorators.every((decorator) => decorator.disposeCalls > 0),
+      'Dispose should clean up all decorators'
+    );
   });
 });

@@ -4,14 +4,20 @@ import { TokenRegistry } from '@/tokenManager/tokenRegistry';
 import { ThemeManager } from '@/tokenManager/themeManager';
 import { Config } from '@/utils/config';
 import { getColorContrast } from '@/utils/colorContrast';
+import { TokenDecorator } from './tokenDecorator';
 
 /**
  * 颜色装饰器
  * 负责在编辑器中为 Token 添加颜色可视化装饰
  */
-export class ColorDecorator {
+export class ColorDecorator implements TokenDecorator {
+  readonly configurationSection = 'antdToken.colorDecorator';
+
   /** 装饰类型缓存 Map<颜色值, DecorationType> */
-  private readonly decorationTypes = new Map<string, vscode.TextEditorDecorationType>();
+  private readonly decorationTypes = new Map<
+    string,
+    vscode.TextEditorDecorationType
+  >();
 
   /** 资源清理器 */
   private disposables: vscode.Disposable[] = [];
@@ -98,6 +104,10 @@ export class ColorDecorator {
 
     // 触发重新装饰（由 DocumentDecorationManager 处理）
     // 这里不直接处理，而是通过事件通知
+  }
+
+  isEnabled(): boolean {
+    return Config.getDecoratorEnabled();
   }
 
   /**
@@ -246,7 +256,7 @@ export class ColorDecorator {
     // 配置变更时刷新装饰
     this.disposables.push(
       Config.onConfigChange((event) => {
-        if (event.affectsConfiguration('antdToken.colorDecorator')) {
+        if (event.affectsConfiguration(this.configurationSection)) {
           this.refresh();
         }
       })

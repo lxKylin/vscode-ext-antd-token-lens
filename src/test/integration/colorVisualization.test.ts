@@ -8,11 +8,11 @@ import {
 } from '@/tokenManager';
 import { TokenScanner } from '@/tokenManager/tokenScanner';
 import { ColorDecorator } from '@/providers/colorDecorator';
+import { ValueDecorator } from '@/providers/valueDecorator';
 import { DocumentDecorationManager } from '@/providers/documentDecorationManager';
 
 suite('Color Visualization Integration Test', () => {
   let scanner: TokenScanner;
-  let decorator: ColorDecorator;
   let manager: DocumentDecorationManager;
 
   suiteSetup(() => {
@@ -23,8 +23,10 @@ suite('Color Visualization Integration Test', () => {
 
   setup(() => {
     scanner = new TokenScanner();
-    decorator = new ColorDecorator(tokenRegistry, themeManager);
-    manager = new DocumentDecorationManager(scanner, decorator);
+    manager = new DocumentDecorationManager(scanner, [
+      new ColorDecorator(tokenRegistry, themeManager),
+      new ValueDecorator(tokenRegistry, themeManager)
+    ]);
   });
 
   teardown(() => {
