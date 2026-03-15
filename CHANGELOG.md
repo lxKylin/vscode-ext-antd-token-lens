@@ -4,6 +4,32 @@ All notable changes to the "ant-design-token-lens" extension will be documented 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.4.0] - 2026-03-15
+
+### Added
+
+- 新增 `antdTheme` 数据源，支持基于项目本地 `antd` 的 `theme.getDesignToken()` 读取静态主题结果
+- 新增三种 `antdTheme` 输入方式：`themeConfig`、`designToken`、`filePath`
+- 新增 `ThemeConfigLoader`，支持按 `themeConfig > designToken > filePath` 的优先级解析主题输入
+- 新增结构化 source diagnostics / status 模型，用于记录数据源 health、错误码、warning、token 数量、耗时和主题元数据
+- 新增命令 `antdToken.showSources`，可查看每个数据源最近一次加载状态、错误原因和主题信息
+- 新增命令 `antdToken.reloadSources`，支持重新加载所有数据源并输出成功 / 警告 / 失败摘要
+- 新增命令 `antdToken.selectThemePreview`，支持显式切换到某个命名主题，或恢复自动 / 默认预览
+- 新增多命名主题模型，支持在同一工作区内并列注册多套主题结果
+- 新增面向真实项目接入的 `antdTheme` 使用与排障指南
+
+### Changed
+
+- `antdToken.toggleThemePreview` 保持 Light / Dark 快速切换语义，同时兼容新的命名主题预览模型
+- Hover、Completion、颜色装饰、非颜色数值装饰、JavaScript / TypeScript Token 支持现在会跟随当前命名主题预览结果刷新
+- `showSources` 展示内容增强，`antdTheme` 数据源会额外显示 `themeName`、`baseTheme`、实际采用的配置入口、解析到的 `antd` 信息、最近错误与 warning
+- README、docs 和 CHANGELOG 已统一为阶段 8 的对外说明，补齐 `antdTheme` 接入、命名主题预览、source diagnostics、多 source 共存和限制边界
+
+### Notes
+
+- 当前仅支持项目本地安装的 `antd`，不会回退到扩展内置版本
+- `filePath` 仅支持静态可解析的纯对象导出，不支持函数导出、异步逻辑、运行时副作用或局部 `ConfigProvider` 继承链推断
+
 ## [0.3.0] - 2026-03-14
 
 ### Added
