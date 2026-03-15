@@ -47,8 +47,9 @@ export class JsTokenCompletionProvider
       replaceRange = new vscode.Range(replaceStart, position);
     }
 
-    const theme = this.themeManager.getCurrentTheme();
-    const tokens = this.tokenRegistry.getByTheme(theme);
+    const tokens = this.tokenRegistry.getEffectiveTokens(
+      this.themeManager.getCurrentTokenQuery()
+    );
 
     return tokens.map((tokenInfo, index) => {
       const camelName = TokenNameConverter.cssToJs(tokenInfo.name);

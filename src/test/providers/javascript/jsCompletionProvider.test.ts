@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import * as assert from 'node:assert';
 import * as vscode from 'vscode';
 import { JsTokenCompletionProvider } from '@/providers/javascript/jsCompletionProvider';
 import { TokenRegistry } from '@/tokenManager/tokenRegistry';
@@ -14,11 +14,15 @@ const mockTokenInfo = {
 };
 
 const mockRegistry = {
-  getByTheme: (_theme: string) => [mockTokenInfo]
+  getEffectiveTokens: () => [mockTokenInfo]
 } as unknown as TokenRegistry;
 
 const mockThemeManager = {
-  getCurrentTheme: () => 'light' as const
+  getCurrentTheme: () => 'light' as const,
+  getCurrentTokenQuery: () => ({
+    baseTheme: 'light' as const,
+    themeId: 'light'
+  })
 } as unknown as ThemeManager;
 
 // 创建模拟文档
@@ -71,11 +75,9 @@ suite('JsTokenCompletionProvider Test Suite', () => {
     const position = new vscode.Position(0, 6);
     const result = provider.provideCompletionItems(doc, position);
     assert.ok(result && result.length > 0, '应返回补全数组');
-    const item = result![0];
+    const item = result[0];
     const label =
-      typeof item.label === 'string'
-        ? item.label
-        : (item.label as vscode.CompletionItemLabel).label;
+      typeof item.label === 'string' ? item.label : item.label.label;
     assert.strictEqual(label, 'colorPrimary', 'label 应为 camelCase 名');
   });
 
@@ -110,7 +112,7 @@ suite('JsTokenCompletionProvider Test Suite', () => {
     const position = new vscode.Position(0, 9);
     const result = provider.provideCompletionItems(doc, position);
     assert.ok(result && result.length > 0, '应返回补全数组');
-    const item = result![0];
+    const item = result[0];
     assert.ok(item.range, '应设置替换范围');
     const range = item.range as vscode.Range;
     // replaceRange 应从 'col' 起始处（第 6 列）到当前位置（第 9 列）
@@ -128,7 +130,7 @@ suite('JsTokenCompletionProvider Test Suite', () => {
     const position = new vscode.Position(1, 13);
     const result = provider.provideCompletionItems(doc, position);
     assert.ok(result && result.length > 0, '应返回补全数组');
-    const item = result![0];
+    const item = result[0];
     assert.ok(item.range, '应设置替换范围');
     const range = item.range as vscode.Range;
     assert.strictEqual(range.start.character, 10, 'replaceRange 应从 col 开始');

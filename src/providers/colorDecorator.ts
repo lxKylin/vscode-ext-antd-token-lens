@@ -42,9 +42,9 @@ export class ColorDecorator implements TokenDecorator {
     const colorGroups = new Map<string, vscode.Range[]>();
 
     for (const match of matches) {
-      const tokenInfo = this.tokenRegistry.get(
+      const tokenInfo = this.tokenRegistry.getToken(
         match.tokenName,
-        this.themeManager.getCurrentTheme()
+        this.themeManager.getCurrentTokenQuery()
       );
 
       // 调试日志：查看匹配情况

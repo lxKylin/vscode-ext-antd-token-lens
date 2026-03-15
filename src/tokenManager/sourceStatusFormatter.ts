@@ -11,6 +11,7 @@ export function formatSourceQuickPickItem(
   const metadata = status.metadata ?? {};
   const themeName = asString(metadata.themeName);
   const baseTheme = asString(metadata.baseTheme);
+  const themeSummary = formatThemeSummary(metadata.themes);
   const entryType = asString(metadata.entryType);
   const antdVersion = asString(metadata.antdVersion);
   const tokenCount = status.tokenCount ?? 0;
@@ -25,6 +26,7 @@ export function formatSourceQuickPickItem(
     detail: [
       `类型: ${status.sourceType}`,
       baseTheme ? `主题: ${baseTheme}` : undefined,
+      themeSummary ? `命名主题: ${themeSummary}` : undefined,
       entryType ? `入口: ${entryType}` : undefined,
       `Token: ${tokenCount}`,
       `耗时: ${loadTime}`,
@@ -49,6 +51,7 @@ export function formatSourceStatusDetail(status: SourceRuntimeStatus): string {
     `- 描述: ${status.description}`,
     `- Theme Name: ${asString(metadata.themeName) ?? '-'}`,
     `- Base Theme: ${asString(metadata.baseTheme) ?? '-'}`,
+    `- Themes: ${formatThemeSummary(metadata.themes) ?? '-'}`,
     `- 配置入口: ${asString(metadata.entryType) ?? '-'}`,
     `- 主题文件/来源: ${asString(metadata.sourceLocation) ?? asString(metadata.filePath) ?? 'inline'}`,
     `- Export Name: ${asString(metadata.usedExportName) ?? asString(metadata.exportName) ?? '-'}`,
@@ -138,4 +141,29 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0
     ? value
     : undefined;
+}
+
+function formatThemeSummary(value: unknown): string | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    return undefined;
+  }
+
+  const labels = value
+    .map((theme) => {
+      if (!theme || typeof theme !== 'object') {
+        return undefined;
+      }
+
+      const candidate = theme as Record<string, unknown>;
+      const name = asString(candidate.name);
+      const baseTheme = asString(candidate.baseTheme);
+      if (!name) {
+        return undefined;
+      }
+
+      return baseTheme && name !== baseTheme ? `${name} (${baseTheme})` : name;
+    })
+    .filter((label): label is string => Boolean(label));
+
+  return labels.length > 0 ? labels.join(', ') : undefined;
 }

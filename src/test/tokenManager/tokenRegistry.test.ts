@@ -118,6 +118,110 @@ suite('TokenRegistry Test Suite', () => {
     assert.strictEqual(darkTokens[0].value, '#1668dc');
   });
 
+  test('named theme variants coexist and can be queried by theme id', () => {
+    registry.registerBatch([
+      {
+        name: '--ant-color-primary',
+        value: '#1677ff',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'light',
+        themeName: 'light',
+        category: 'color',
+        source: 'builtin',
+        isColor: true
+      },
+      {
+        name: '--ant-color-primary',
+        value: '#13c2c2',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'brand-a',
+        themeName: 'brand-a',
+        category: 'color',
+        source: 'custom',
+        priority: 5,
+        isColor: true
+      },
+      {
+        name: '--ant-color-primary',
+        value: '#722ed1',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'brand-b',
+        themeName: 'brand-b',
+        category: 'color',
+        source: 'custom',
+        priority: 6,
+        isColor: true
+      }
+    ]);
+
+    const variants = registry.getTokenVariants('--ant-color-primary');
+    assert.strictEqual(variants.length, 3);
+    assert.strictEqual(
+      registry.getToken('--ant-color-primary', { themeId: 'brand-a' })?.value,
+      '#13c2c2'
+    );
+    assert.strictEqual(registry.getByThemeId('brand-b').length, 1);
+    assert.strictEqual(registry.getThemes().length, 3);
+  });
+
+  test('base theme compatibility query prefers active named theme and falls back', () => {
+    registry.registerBatch([
+      {
+        name: '--ant-color-primary',
+        value: '#1677ff',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'light',
+        themeName: 'light',
+        category: 'color',
+        source: 'builtin',
+        isColor: true
+      },
+      {
+        name: '--ant-color-primary',
+        value: '#13c2c2',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'brand-a',
+        themeName: 'brand-a',
+        category: 'color',
+        source: 'custom',
+        priority: 5,
+        isColor: true
+      },
+      {
+        name: '--ant-color-success',
+        value: '#52c41a',
+        theme: 'light',
+        baseTheme: 'light',
+        themeId: 'light',
+        themeName: 'light',
+        category: 'color',
+        source: 'builtin',
+        isColor: true
+      }
+    ]);
+
+    registry.setActiveThemeResolver(() => ({
+      id: 'brand-a',
+      name: 'brand-a',
+      baseTheme: 'light'
+    }));
+
+    assert.strictEqual(
+      registry.get('--ant-color-primary', 'light')?.value,
+      '#13c2c2'
+    );
+    assert.strictEqual(
+      registry.get('--ant-color-success', 'light')?.value,
+      '#52c41a'
+    );
+    assert.strictEqual(registry.getByTheme('light').length, 2);
+  });
+
   test('search tokens', () => {
     const tokens: TokenInfo[] = [
       {

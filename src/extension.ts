@@ -33,6 +33,21 @@ let decorationManager: DocumentDecorationManager | undefined;
 let completionProvider: AntdTokenCompletionProvider | undefined;
 let jsDecorationManager: DocumentDecorationManager | undefined;
 let jsDisposables: vscode.Disposable[] = [];
+let sharedHoverProvider: AntdTokenHoverProvider | undefined;
+let sharedHoverContentBuilder: HoverContentBuilder | undefined;
+
+function refreshThemeAwareViews(
+  hoverProvider: AntdTokenHoverProvider | undefined = sharedHoverProvider,
+  hoverContentBuilder:
+    | HoverContentBuilder
+    | undefined = sharedHoverContentBuilder
+) {
+  decorationManager?.refresh();
+  jsDecorationManager?.refresh();
+  hoverProvider?.clearCache();
+  hoverContentBuilder?.clearCache();
+  completionProvider?.clearCache();
+}
 
 function disposeJsSupport() {
   jsDisposables.forEach((d) => d.dispose());
@@ -81,6 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
       tokenRegistry,
       themeManager
     );
+    sharedHoverContentBuilder = hoverContentBuilder;
 
     if (!isTestMode) {
       const colorDecorator = new ColorDecorator(tokenRegistry, themeManager);
@@ -95,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
       // 监听主题切换，自动刷新装饰
       context.subscriptions.push(
         themeManager.onThemeChange(() => {
-          decorationManager?.refresh();
+          refreshThemeAwareViews(hoverProvider, hoverContentBuilder);
         })
       );
 
@@ -104,16 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(
           sourceManager.onDidSourcesChange(() => {
             console.log('[Extension] Sources changed, refreshing...');
-
-            // 刷新所有编辑器的装饰
-            decorationManager?.refresh();
-
-            // 清空 Hover / 补全缓存，避免 source 更新后仍看到旧值
-            hoverProvider.clearCache();
-            hoverContentBuilder.clearCache();
-
-            // 清空补全缓存
-            completionProvider?.clearCache();
+            refreshThemeAwareViews(hoverProvider, hoverContentBuilder);
           })
         );
       }
@@ -131,6 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
       scanner,
       hoverContentBuilder
     );
+    sharedHoverProvider = hoverProvider;
 
     // 注册 HoverProvider 到所有支持的语言
     const supportedLanguages = [
@@ -256,7 +264,7 @@ export async function activate(context: vscode.ExtensionContext) {
           jsDm,
           themeManager.onThemeChange(() => {
             jsScanner.clearCache();
-            jsDecorationManager?.refresh();
+            refreshThemeAwareViews();
           })
         );
 
@@ -264,7 +272,7 @@ export async function activate(context: vscode.ExtensionContext) {
           decorationDisposables.push(
             sourceManager.onDidSourcesChange(() => {
               jsScanner.clearCache();
-              jsDecorationManager?.refresh();
+              refreshThemeAwareViews();
             })
           );
         }
@@ -370,8 +378,10 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'antdToken.copyTokenValue',
       (tokenName: string) => {
-        const currentTheme = themeManager.getCurrentTheme();
-        const tokenInfo = tokenRegistry.get(tokenName, currentTheme);
+        const tokenInfo = tokenRegistry.getToken(
+          tokenName,
+          themeManager.getCurrentTokenQuery()
+        );
 
         if (tokenInfo) {
           vscode.env.clipboard.writeText(tokenInfo.value);
@@ -422,19 +432,71 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('antdToken.toggleThemePreview', () => {
       const currentTheme = themeManager.getCurrentTheme();
       const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      themeManager.clearPreviewTheme();
       themeManager.setTheme(newTheme);
 
       vscode.window.showInformationMessage(`已切换到 ${newTheme} 主题预览`);
     }),
+    vscode.commands.registerCommand(
+      'antdToken.selectThemePreview',
+      async () => {
+        const availableThemes = themeManager.getAvailableThemes();
+        const items: Array<
+          vscode.QuickPickItem & { themeId?: string; clearPreview?: boolean }
+        > = [
+          {
+            label: '自动 / 默认预览',
+            description: '跟随当前基础主题的默认结果',
+            detail: `当前基础主题: ${themeManager.getCurrentTheme()}`,
+            clearPreview: true
+          },
+          ...availableThemes.map((theme) => ({
+            label: theme.isActive ? `$(check) ${theme.name}` : theme.name,
+            description: `${theme.baseTheme} · ${theme.sourceType ?? 'builtin'}`,
+            detail: [
+              `ID: ${theme.id}`,
+              theme.sourceId ? `Source: ${theme.sourceId}` : undefined,
+              theme.isBuiltin ? '内置主题' : '命名主题'
+            ]
+              .filter(Boolean)
+              .join(' | '),
+            themeId: theme.id
+          }))
+        ];
+
+        const selected = await vscode.window.showQuickPick(items, {
+          title: '选择主题预览',
+          placeHolder: '选择一个命名主题，或恢复自动预览'
+        });
+
+        if (!selected) {
+          return;
+        }
+
+        if (selected.clearPreview) {
+          themeManager.clearPreviewTheme();
+          vscode.window.showInformationMessage('已恢复自动主题预览');
+          return;
+        }
+
+        if (!selected.themeId) {
+          return;
+        }
+
+        themeManager.setPreviewTheme(selected.themeId);
+        const currentTheme = themeManager.getCurrentThemeDescriptor();
+        vscode.window.showInformationMessage(
+          `已切换到主题预览: ${currentTheme.name} (${currentTheme.baseTheme})`
+        );
+      }
+    ),
     vscode.commands.registerCommand('antdToken.refreshTokens', async () => {
       const sourceManager = getSourceManager();
       if (sourceManager) {
         await sourceManager.reload();
       }
 
-      decorationManager?.refresh();
-      jsDecorationManager?.refresh();
-      completionProvider?.clearCache();
+      refreshThemeAwareViews();
 
       vscode.window.showInformationMessage('Token 数据已刷新');
     }),

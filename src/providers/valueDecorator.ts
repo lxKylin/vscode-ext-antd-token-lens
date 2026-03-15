@@ -32,9 +32,9 @@ export class ValueDecorator implements TokenDecorator {
     const options = this.getFormatterOptions();
 
     for (const match of matches) {
-      const tokenInfo = this.tokenRegistry.get(
+      const tokenInfo = this.tokenRegistry.getToken(
         match.tokenName,
-        this.themeManager.getCurrentTheme()
+        this.themeManager.getCurrentTokenQuery()
       );
 
       if (!tokenInfo || tokenInfo.isColor) {

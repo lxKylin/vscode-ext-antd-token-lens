@@ -53,6 +53,11 @@
         "category": "Ant Design Token Lens"
       },
       {
+        "command": "antdToken.selectThemePreview",
+        "title": "选择命名主题预览",
+        "category": "Ant Design Token Lens"
+      },
+      {
         "command": "antdToken.refreshTokens",
         "title": "刷新 Token 数据",
         "category": "Ant Design Token Lens"

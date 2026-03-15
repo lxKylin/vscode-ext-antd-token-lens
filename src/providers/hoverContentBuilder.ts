@@ -54,9 +54,9 @@ export class HoverContentBuilder {
    * 获取缓存键
    */
   private getCacheKey(tokenName: string): string {
-    const theme = this.themeManager.getCurrentTheme();
+    const currentTheme = this.themeManager.getCurrentThemeDescriptor();
     const verbosity = Config.getHoverVerbosity();
-    return `${tokenName}:${theme}:${verbosity}:${this.cacheVersion}`;
+    return `${tokenName}:${currentTheme.id}:${currentTheme.baseTheme}:${verbosity}:${this.cacheVersion}`;
   }
 
   /**
@@ -74,13 +74,19 @@ export class HoverContentBuilder {
     tokenName: string,
     displayName?: string
   ): vscode.MarkdownString | undefined {
-    const currentTheme = this.themeManager.getCurrentTheme();
-    const tokenInfo = this.tokenRegistry.get(tokenName, currentTheme);
+    const currentTheme = this.themeManager.getCurrentThemeDescriptor();
+    const tokenInfo = this.tokenRegistry.getToken(tokenName, {
+      themeId: currentTheme.id,
+      baseTheme: currentTheme.baseTheme
+    });
+    const tokenVariants = this.tokenRegistry.getTokenVariants(tokenName);
     const nameToShow = displayName ?? tokenName;
 
-    if (!tokenInfo) {
+    if (!tokenInfo && tokenVariants.length === 0) {
       return this.buildNotFoundContent(nameToShow);
     }
+
+    const activeToken = tokenInfo ?? tokenVariants[0];
 
     const verbosity = Config.getHoverVerbosity();
     const markdown = new vscode.MarkdownString('', true);
@@ -90,14 +96,26 @@ export class HoverContentBuilder {
     // 构建不同详细程度的内容
     switch (verbosity) {
       case 'minimal':
-        this.buildMinimalContent(markdown, tokenInfo, nameToShow);
+        this.buildMinimalContent(markdown, activeToken, nameToShow);
         break;
       case 'detailed':
-        this.buildDetailedContent(markdown, tokenInfo, tokenName, nameToShow);
+        this.buildDetailedContent(
+          markdown,
+          activeToken,
+          tokenName,
+          nameToShow,
+          tokenVariants
+        );
         break;
       case 'normal':
       default:
-        this.buildNormalContent(markdown, tokenInfo, tokenName, nameToShow);
+        this.buildNormalContent(
+          markdown,
+          activeToken,
+          tokenName,
+          nameToShow,
+          tokenVariants
+        );
         break;
     }
 
@@ -132,7 +150,8 @@ export class HoverContentBuilder {
     markdown: vscode.MarkdownString,
     tokenInfo: TokenInfo,
     tokenName: string,
-    displayName: string
+    displayName: string,
+    tokenVariants: TokenInfo[]
   ): void {
     // 标题
     markdown.appendMarkdown(`### 🎨 ${displayName}\n\n`);
@@ -143,8 +162,10 @@ export class HoverContentBuilder {
     }
 
     // 当前主题值
-    const currentTheme = this.themeManager.getCurrentTheme();
-    markdown.appendMarkdown(`**当前主题 (${currentTheme})**: `);
+    const currentTheme = this.themeManager.getCurrentThemeDescriptor();
+    markdown.appendMarkdown(
+      `**当前主题 (${this.getThemeLabel(tokenInfo)})**: `
+    );
 
     if (tokenInfo.isColor) {
       markdown.appendMarkdown(`${this.renderColorValue(tokenInfo.value)}\n\n`);
@@ -153,8 +174,8 @@ export class HoverContentBuilder {
     }
 
     // 多主题对比
-    if (Config.getShowMultiTheme() && tokenInfo.isColor) {
-      this.buildThemeComparison(markdown, tokenName);
+    if (Config.getShowMultiTheme() && tokenVariants.length > 1) {
+      this.buildThemeComparison(markdown, tokenVariants, currentTheme.id);
     }
 
     // 颜色格式转换
@@ -164,8 +185,9 @@ export class HoverContentBuilder {
 
     // 来源信息
     markdown.appendMarkdown(`---\n\n`);
+    markdown.appendMarkdown(`**来源**: ${this.getSourceLabel(tokenInfo)}\n`);
     markdown.appendMarkdown(
-      `**来源**: ${this.getSourceLabel(tokenInfo.source)}\n`
+      `**主题 ID**: \`${tokenInfo.themeId ?? tokenInfo.theme}\`\n`
     );
 
     // 分类标签
@@ -181,10 +203,17 @@ export class HoverContentBuilder {
     markdown: vscode.MarkdownString,
     tokenInfo: TokenInfo,
     tokenName: string,
-    displayName: string
+    displayName: string,
+    tokenVariants: TokenInfo[]
   ): void {
     // 包含标准版内容
-    this.buildNormalContent(markdown, tokenInfo, tokenName, displayName);
+    this.buildNormalContent(
+      markdown,
+      tokenInfo,
+      tokenName,
+      displayName,
+      tokenVariants
+    );
 
     // 添加额外信息
     markdown.appendMarkdown(`\n---\n\n`);
@@ -196,8 +225,11 @@ export class HoverContentBuilder {
     if (relatedTokens.length > 0) {
       markdown.appendMarkdown(`**相关 Token**:\n\n`);
       relatedTokens.forEach((related) => {
-        const currentTheme = this.themeManager.getCurrentTheme();
-        const relatedTokenInfo = this.tokenRegistry.get(related, currentTheme);
+        const currentTheme = this.themeManager.getCurrentThemeDescriptor();
+        const relatedTokenInfo = this.tokenRegistry.getToken(related, {
+          themeId: currentTheme.id,
+          baseTheme: currentTheme.baseTheme
+        });
         const relatedDisplay = usesCamelCase
           ? TokenNameConverter.cssToJs(related)
           : related;
@@ -248,22 +280,39 @@ export class HoverContentBuilder {
    */
   private buildThemeComparison(
     markdown: vscode.MarkdownString,
-    tokenName: string
+    variants: TokenInfo[],
+    activeThemeId: string
   ): void {
     markdown.appendMarkdown(`**多主题对比**:\n\n`);
 
-    const lightToken = this.tokenRegistry.get(tokenName, 'light');
-    const darkToken = this.tokenRegistry.get(tokenName, 'dark');
+    const sortedVariants = [...variants].sort((left, right) => {
+      if (left.themeId === activeThemeId && right.themeId !== activeThemeId) {
+        return -1;
+      }
+      if (left.themeId !== activeThemeId && right.themeId === activeThemeId) {
+        return 1;
+      }
+      if ((left.baseTheme ?? left.theme) !== (right.baseTheme ?? right.theme)) {
+        return (left.baseTheme ?? left.theme).localeCompare(
+          right.baseTheme ?? right.theme
+        );
+      }
+      return this.getThemeLabel(left).localeCompare(this.getThemeLabel(right));
+    });
 
-    if (lightToken) {
+    sortedVariants.slice(0, 6).forEach((variant) => {
+      const prefix = variant.themeId === activeThemeId ? '当前' : '候选';
+      const value = variant.isColor
+        ? this.renderColorValue(variant.value)
+        : `\`${variant.value}\``;
       markdown.appendMarkdown(
-        `- Light: ${this.renderColorValue(lightToken.value)}\n`
+        `- ${prefix} ${this.getThemeLabel(variant)}: ${value} · ${this.getSourceLabel(variant)}\n`
       );
-    }
+    });
 
-    if (darkToken) {
+    if (sortedVariants.length > 6) {
       markdown.appendMarkdown(
-        `- Dark: ${this.renderColorValue(darkToken.value)}\n`
+        `- 其余 ${sortedVariants.length - 6} 个主题值已省略\n`
       );
     }
 
@@ -324,12 +373,27 @@ export class HoverContentBuilder {
   /**
    * 获取来源标签
    */
-  private getSourceLabel(source: string): string {
+  private getSourceLabel(tokenInfo: TokenInfo): string {
     const labels: Record<string, string> = {
       builtin: 'Ant Design',
-      custom: '自定义'
+      custom: '自定义',
+      builtinSource: '内置主题',
+      antdTheme: 'antdTheme',
+      css: 'CSS',
+      less: 'Less',
+      scss: 'Scss'
     };
-    return labels[source] || source;
+    if (tokenInfo.sourceType && labels[tokenInfo.sourceType]) {
+      return labels[tokenInfo.sourceType];
+    }
+    return labels[tokenInfo.source] || tokenInfo.source;
+  }
+
+  private getThemeLabel(tokenInfo: TokenInfo): string {
+    const themeName =
+      tokenInfo.themeName ?? tokenInfo.themeId ?? tokenInfo.theme;
+    const baseTheme = tokenInfo.baseTheme ?? tokenInfo.theme;
+    return themeName === baseTheme ? baseTheme : `${themeName} (${baseTheme})`;
   }
 
   /**

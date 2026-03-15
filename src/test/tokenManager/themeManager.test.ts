@@ -4,6 +4,7 @@
 
 import * as assert from 'assert';
 import { ThemeManager, ThemeMode } from '@/tokenManager/themeManager';
+import { ThemeDescriptor } from '@/tokenManager/sourceTypes';
 
 suite('ThemeManager Test Suite', () => {
   let themeManager: ThemeManager;
@@ -145,5 +146,52 @@ suite('ThemeManager Test Suite', () => {
     const anotherTheme = targetTheme === 'light' ? 'dark' : 'light';
     themeManager.setTheme(anotherTheme);
     assert.strictEqual(callCount, initialCallCount);
+  });
+
+  test('returns active named theme descriptor after preview selection', () => {
+    const themes: ThemeDescriptor[] = [
+      {
+        id: 'brand-light',
+        name: 'brand-light',
+        baseTheme: 'light',
+        priority: 5
+      },
+      {
+        id: 'brand-dark',
+        name: 'brand-dark',
+        baseTheme: 'dark',
+        priority: 5
+      }
+    ];
+
+    themeManager.setAvailableThemes(themes);
+    themeManager.setPreviewTheme('brand-dark');
+
+    const descriptor = themeManager.getCurrentThemeDescriptor();
+    assert.strictEqual(descriptor.id, 'brand-dark');
+    assert.strictEqual(descriptor.baseTheme, 'dark');
+    assert.strictEqual(
+      themeManager.getCurrentTokenQuery().themeId,
+      'brand-dark'
+    );
+  });
+
+  test('clearing preview falls back to current base theme default descriptor', () => {
+    themeManager.setTheme('light');
+    themeManager.setAvailableThemes([
+      {
+        id: 'brand-a',
+        name: 'brand-a',
+        baseTheme: 'light',
+        priority: 5
+      }
+    ]);
+
+    themeManager.setPreviewTheme('brand-a');
+    themeManager.clearPreviewTheme();
+
+    const descriptor = themeManager.getCurrentThemeDescriptor();
+    assert.strictEqual(descriptor.baseTheme, 'light');
+    assert.strictEqual(descriptor.id, 'brand-a');
   });
 });

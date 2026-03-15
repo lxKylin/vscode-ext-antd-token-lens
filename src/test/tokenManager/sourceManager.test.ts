@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { SourceManager } from '@/tokenManager/sourceManager';
 import { TokenRegistry } from '@/tokenManager/tokenRegistry';
 import { SourceType } from '@/tokenManager/sourceTypes';
+import { ThemeManager } from '@/tokenManager/themeManager';
 import {
   createFakeAntdPackage,
   createTempWorkspace,
@@ -15,12 +16,17 @@ suite('SourceManager Test Suite', () => {
   let assetsDir: string;
   let sourceManager: SourceManager;
   let tokenRegistry: TokenRegistry;
+  let themeManager: ThemeManager;
 
   setup(async () => {
     tempDir = await createTempWorkspace('source-manager-');
     assetsDir = path.join(tempDir, 'assets/css');
     tokenRegistry = new TokenRegistry();
-    sourceManager = new SourceManager(tokenRegistry, assetsDir);
+    themeManager = new ThemeManager();
+    tokenRegistry.setActiveThemeResolver(() =>
+      themeManager.getCurrentThemeDescriptor()
+    );
+    sourceManager = new SourceManager(tokenRegistry, assetsDir, themeManager);
 
     await writeWorkspaceFiles(tempDir, {
       'assets/css/antd-light-theme.css': `:root { --ant-color-primary: #1677ff; }`,
@@ -30,6 +36,7 @@ suite('SourceManager Test Suite', () => {
 
   teardown(async () => {
     sourceManager.dispose();
+    themeManager.dispose();
     await removeTempWorkspace(tempDir);
   });
 
@@ -122,5 +129,48 @@ suite('SourceManager Test Suite', () => {
     const secondStatus = sourceManager.getSourceStatuses()[0];
     assert.ok((secondStatus.lastLoadedAt ?? 0) >= firstLoadedAt);
     assert.strictEqual(secondStatus.health, 'ok');
+  });
+
+  test('aggregates available named themes and refreshes after reload', async () => {
+    await createFakeAntdPackage(tempDir);
+    const brandAPath = path.join(tempDir, 'src/theme/brand-a.ts');
+    const brandBPath = path.join(tempDir, 'src/theme/brand-b.ts');
+    await writeWorkspaceFiles(tempDir, {
+      'src/theme/brand-a.ts': `export default { token: { colorPrimary: '#13c2c2' } };`,
+      'src/theme/brand-b.ts': `export default { token: { colorPrimary: '#722ed1' } };`
+    });
+
+    await sourceManager.addSource({
+      type: SourceType.BUILTIN,
+      enabled: true,
+      priority: 100
+    });
+    await sourceManager.addSource({
+      type: SourceType.ANTD_THEME,
+      enabled: true,
+      priority: 5,
+      id: 'brand-a',
+      baseTheme: 'light',
+      filePath: brandAPath,
+      resolveFromWorkspace: false
+    });
+    await sourceManager.addSource({
+      type: SourceType.ANTD_THEME,
+      enabled: true,
+      priority: 6,
+      id: 'brand-b',
+      baseTheme: 'light',
+      filePath: brandBPath,
+      resolveFromWorkspace: false
+    });
+
+    await sourceManager.loadAllSources();
+
+    const themes = sourceManager.getThemeDescriptors();
+    assert.ok(themes.some((theme) => theme.id === 'brand-a'));
+    assert.ok(themes.some((theme) => theme.id === 'brand-b'));
+    assert.ok(
+      themeManager.getAvailableThemes().some((theme) => theme.id === 'brand-a')
+    );
   });
 });

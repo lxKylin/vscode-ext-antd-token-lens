@@ -4,12 +4,40 @@
  */
 
 import * as vscode from 'vscode';
+import { SourceBaseTheme, ThemeDescriptor } from './sourceTypes';
 
 export type ThemeMode = 'light' | 'dark';
 export type ThemeConfig = 'auto' | 'light' | 'dark';
 
+const BUILTIN_THEME_DESCRIPTORS: ThemeDescriptor[] = [
+  {
+    id: 'light',
+    name: 'light',
+    baseTheme: 'light',
+    sourceId: 'builtin',
+    sourceType: undefined,
+    isBuiltin: true,
+    priority: 100,
+    metadata: { sourceLabel: 'builtin' }
+  },
+  {
+    id: 'dark',
+    name: 'dark',
+    baseTheme: 'dark',
+    sourceId: 'builtin',
+    sourceType: undefined,
+    isBuiltin: true,
+    priority: 100,
+    metadata: { sourceLabel: 'builtin' }
+  }
+];
+
 export class ThemeManager {
   private currentTheme: ThemeMode;
+  private previewThemeId: string | undefined;
+  private availableThemes: ThemeDescriptor[] = BUILTIN_THEME_DESCRIPTORS.map(
+    (theme) => ({ ...theme })
+  );
   private listeners: ((theme: ThemeMode) => void)[] = [];
   private disposables: vscode.Disposable[] = [];
 
@@ -29,6 +57,93 @@ export class ThemeManager {
    */
   getCurrentTheme(): ThemeMode {
     return this.currentTheme;
+  }
+
+  getCurrentThemeDescriptor(): ThemeDescriptor {
+    const activeTheme = this.resolveActiveThemeDescriptor();
+    return {
+      ...activeTheme,
+      isActive: true
+    };
+  }
+
+  getAvailableThemes(baseTheme?: SourceBaseTheme): ThemeDescriptor[] {
+    const activeThemeId = this.getCurrentThemeDescriptor().id;
+    return this.availableThemes
+      .filter((theme) => (baseTheme ? theme.baseTheme === baseTheme : true))
+      .map((theme) => ({
+        ...theme,
+        isActive: theme.id === activeThemeId
+      }));
+  }
+
+  setAvailableThemes(themes: ThemeDescriptor[]): void {
+    const previousSignature = this.getThemeSignature(this.availableThemes);
+    const previousActive = this.resolveActiveThemeDescriptor().id;
+
+    this.availableThemes = this.mergeAvailableThemes(themes);
+
+    if (
+      this.previewThemeId &&
+      !this.availableThemes.some((theme) => theme.id === this.previewThemeId)
+    ) {
+      this.previewThemeId = undefined;
+    }
+
+    const nextSignature = this.getThemeSignature(this.availableThemes);
+    const nextActive = this.resolveActiveThemeDescriptor().id;
+
+    if (previousSignature !== nextSignature || previousActive !== nextActive) {
+      this.notifyListeners();
+    }
+  }
+
+  getPreviewThemeId(): string | undefined {
+    return this.previewThemeId;
+  }
+
+  setPreviewTheme(themeId: string | undefined): void {
+    if (!themeId) {
+      this.clearPreviewTheme();
+      return;
+    }
+
+    const targetTheme = this.availableThemes.find(
+      (theme) => theme.id === themeId
+    );
+    if (!targetTheme) {
+      throw new Error(`Theme not found: ${themeId}`);
+    }
+
+    const previousActive = this.resolveActiveThemeDescriptor().id;
+    this.previewThemeId = themeId;
+    const nextActive = this.resolveActiveThemeDescriptor().id;
+
+    if (previousActive !== nextActive) {
+      this.notifyListeners();
+    }
+  }
+
+  clearPreviewTheme(): void {
+    if (!this.previewThemeId) {
+      return;
+    }
+
+    const previousActive = this.resolveActiveThemeDescriptor().id;
+    this.previewThemeId = undefined;
+    const nextActive = this.resolveActiveThemeDescriptor().id;
+
+    if (previousActive !== nextActive) {
+      this.notifyListeners();
+    }
+  }
+
+  getCurrentTokenQuery(): { themeId?: string; baseTheme: SourceBaseTheme } {
+    const activeTheme = this.resolveActiveThemeDescriptor();
+    return {
+      themeId: activeTheme.id,
+      baseTheme: activeTheme.baseTheme
+    };
   }
 
   /**
@@ -133,5 +248,77 @@ export class ThemeManager {
       disposable.dispose();
     }
     this.disposables = [];
+  }
+
+  private resolveActiveThemeDescriptor(): ThemeDescriptor {
+    if (this.previewThemeId) {
+      const previewTheme = this.availableThemes.find(
+        (theme) => theme.id === this.previewThemeId
+      );
+      if (previewTheme) {
+        return previewTheme;
+      }
+    }
+
+    return this.getDefaultThemeDescriptor(this.currentTheme);
+  }
+
+  private getDefaultThemeDescriptor(
+    baseTheme: SourceBaseTheme
+  ): ThemeDescriptor {
+    const candidates = this.availableThemes
+      .filter((theme) => theme.baseTheme === baseTheme)
+      .sort((left, right) => {
+        const leftPriority = left.priority ?? Number.MAX_SAFE_INTEGER;
+        const rightPriority = right.priority ?? Number.MAX_SAFE_INTEGER;
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority;
+        }
+        if ((left.isBuiltin ?? false) !== (right.isBuiltin ?? false)) {
+          return left.isBuiltin ? 1 : -1;
+        }
+        return left.name.localeCompare(right.name);
+      });
+
+    return (
+      candidates[0] ??
+      BUILTIN_THEME_DESCRIPTORS.find((theme) => theme.baseTheme === baseTheme)!
+    );
+  }
+
+  private mergeAvailableThemes(themes: ThemeDescriptor[]): ThemeDescriptor[] {
+    const merged = new Map<string, ThemeDescriptor>();
+
+    for (const theme of BUILTIN_THEME_DESCRIPTORS) {
+      merged.set(theme.id, { ...theme });
+    }
+
+    for (const theme of themes) {
+      merged.set(theme.id, {
+        ...theme,
+        isBuiltin: theme.isBuiltin ?? false
+      });
+    }
+
+    return Array.from(merged.values()).sort((left, right) => {
+      if (left.baseTheme !== right.baseTheme) {
+        return left.baseTheme.localeCompare(right.baseTheme);
+      }
+      const leftPriority = left.priority ?? Number.MAX_SAFE_INTEGER;
+      const rightPriority = right.priority ?? Number.MAX_SAFE_INTEGER;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      if ((left.isBuiltin ?? false) !== (right.isBuiltin ?? false)) {
+        return left.isBuiltin ? 1 : -1;
+      }
+      return left.name.localeCompare(right.name);
+    });
+  }
+
+  private getThemeSignature(themes: ThemeDescriptor[]): string {
+    return themes
+      .map((theme) => `${theme.id}:${theme.baseTheme}:${theme.priority ?? ''}`)
+      .join('|');
   }
 }

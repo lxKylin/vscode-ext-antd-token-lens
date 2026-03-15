@@ -14,7 +14,9 @@ import {
   ExtendedTokenInfo,
   LoadResult,
   AntdThemeSourceConfig,
-  SourceRuntimeStatus
+  SourceRuntimeStatus,
+  ThemeDescriptor,
+  SourceBaseTheme
 } from './sourceTypes';
 import { BuiltinTokenSource } from './sources/builtinSource';
 import { CSSTokenSource } from './sources/cssSource';
@@ -26,6 +28,7 @@ import {
   SourceHealth,
   toSourceDiagnostic
 } from './sourceDiagnostics';
+import { ThemeManager } from './themeManager';
 
 export class SourceManager implements vscode.Disposable {
   private readonly sources: Map<string, ITokenSource> = new Map();
@@ -38,7 +41,8 @@ export class SourceManager implements vscode.Disposable {
 
   constructor(
     private readonly tokenRegistry: TokenRegistry,
-    assetsPath: string
+    assetsPath: string,
+    private readonly themeManager?: ThemeManager
   ) {
     this.assetsPath = assetsPath;
     this.disposables.push(this.onDidSourcesChangeEmitter);
@@ -134,6 +138,7 @@ export class SourceManager implements vscode.Disposable {
       source.dispose();
       this.sources.delete(sourceId);
       this.sourceStatuses.delete(sourceId);
+      this.refreshAvailableThemes();
       console.log(`[SourceManager] Source removed: ${sourceId}`);
     }
   }
@@ -152,6 +157,8 @@ export class SourceManager implements vscode.Disposable {
       const result = await this.loadSource(sourceId);
       results.push(result);
     }
+
+    this.refreshAvailableThemes();
 
     // 触发更新事件
     this.onDidSourcesChangeEmitter.fire();
@@ -231,11 +238,17 @@ export class SourceManager implements vscode.Disposable {
       const tokens = await source.load();
       const loadTime = Date.now() - startTime;
 
+      const normalizedTokens = tokens.map((token) =>
+        this.enrichToken(sourceId, source, token)
+      );
+      const themeDescriptors =
+        this.collectThemeDescriptorsFromTokens(normalizedTokens);
+
       // 注册到 TokenRegistry
-      this.registerTokens(tokens, source.config.priority);
+      this.registerTokens(normalizedTokens);
 
       console.log(
-        `[SourceManager] Loaded ${tokens.length} tokens from ${sourceId} in ${loadTime}ms`
+        `[SourceManager] Loaded ${normalizedTokens.length} tokens from ${sourceId} in ${loadTime}ms`
       );
 
       const status = this.createStatus(
@@ -244,8 +257,11 @@ export class SourceManager implements vscode.Disposable {
         this.getHealthFromWarnings(source.getWarnings()),
         {
           warnings: source.getWarnings(),
-          metadata: source.getRuntimeMetadata(),
-          tokenCount: tokens.length,
+          metadata: this.attachThemeMetadata(
+            source.getRuntimeMetadata(),
+            themeDescriptors
+          ),
+          tokenCount: normalizedTokens.length,
           loadTime,
           lastLoadedAt: Date.now()
         }
@@ -255,7 +271,7 @@ export class SourceManager implements vscode.Disposable {
       return {
         sourceId,
         success: true,
-        tokens,
+        tokens: normalizedTokens,
         source: source.type,
         loadTime,
         status
@@ -303,6 +319,42 @@ export class SourceManager implements vscode.Disposable {
     return Array.from(this.sourceStatuses.values()).sort((left, right) =>
       left.sourceId.localeCompare(right.sourceId)
     );
+  }
+
+  getThemeDescriptors(): ThemeDescriptor[] {
+    const themes = new Map<string, ThemeDescriptor>();
+
+    for (const status of this.getSourceStatuses()) {
+      if (status.health === 'error') {
+        continue;
+      }
+
+      const metadataThemes = this.getThemesFromMetadata(status.metadata);
+      for (const theme of metadataThemes) {
+        const metadata = theme.metadata
+          ? {
+              ...theme.metadata,
+              sourceHealth: status.health
+            }
+          : { sourceHealth: status.health };
+        themes.set(theme.id, {
+          ...theme,
+          metadata
+        });
+      }
+    }
+
+    return Array.from(themes.values()).sort((left, right) => {
+      if (left.baseTheme !== right.baseTheme) {
+        return left.baseTheme.localeCompare(right.baseTheme);
+      }
+      const leftPriority = left.priority ?? Number.MAX_SAFE_INTEGER;
+      const rightPriority = right.priority ?? Number.MAX_SAFE_INTEGER;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.name.localeCompare(right.name);
+    });
   }
 
   /**
@@ -385,14 +437,9 @@ export class SourceManager implements vscode.Disposable {
   /**
    * 注册 Token 到 TokenRegistry
    */
-  private registerTokens(tokens: ExtendedTokenInfo[], priority: number): void {
+  private registerTokens(tokens: ExtendedTokenInfo[]): void {
     for (const token of tokens) {
-      // 根据优先级决定是否覆盖现有 Token
-      const existing = this.tokenRegistry.get(token.name, token.theme);
-
-      if (!existing || priority < ((existing as any).priority || Infinity)) {
-        this.tokenRegistry.register(token);
-      }
+      this.tokenRegistry.register(token);
     }
   }
 
@@ -506,6 +553,7 @@ export class SourceManager implements vscode.Disposable {
     status: SourceRuntimeStatus
   ): void {
     this.sourceStatuses.set(sourceId, status);
+    this.refreshAvailableThemes();
   }
 
   private createStatus(
@@ -543,18 +591,237 @@ export class SourceManager implements vscode.Disposable {
   }
 
   private getDefaultMetadata(source: ITokenSource): Record<string, unknown> {
-    return {
-      priority: source.config.priority,
-      filePath: source.config.filePath,
-      themeName: source.config.themeName,
-      baseTheme: source.config.baseTheme,
-      exportName: source.config.exportName
-    };
+    return this.attachThemeMetadata(
+      {
+        priority: source.config.priority,
+        filePath: source.config.filePath,
+        themeName: source.config.themeName,
+        baseTheme: source.config.baseTheme,
+        exportName: source.config.exportName
+      },
+      this.getConfiguredThemeDescriptors(
+        this.getSourceId(source.config),
+        source
+      )
+    );
   }
 
   private getHealthFromWarnings(
     warnings: SourceDiagnostic[] | undefined
   ): SourceHealth {
     return warnings && warnings.length > 0 ? 'warning' : 'ok';
+  }
+
+  private enrichToken(
+    sourceId: string,
+    source: ITokenSource,
+    token: ExtendedTokenInfo
+  ): ExtendedTokenInfo {
+    const baseTheme =
+      token.baseTheme ?? token.theme ?? source.config.baseTheme ?? 'light';
+    const themeName =
+      token.themeName ??
+      source.config.themeName?.trim() ??
+      source.config.id ??
+      (source.type === SourceType.BUILTIN ? baseTheme : sourceId);
+    const themeId =
+      token.themeId ??
+      this.resolveThemeId(sourceId, source, themeName, baseTheme);
+
+    return {
+      ...token,
+      theme: baseTheme,
+      baseTheme,
+      themeId,
+      themeName,
+      sourceId,
+      sourceType: token.sourceType ?? source.type,
+      priority: token.priority ?? source.config.priority
+    };
+  }
+
+  private resolveThemeId(
+    sourceId: string,
+    source: ITokenSource,
+    themeName: string,
+    baseTheme: SourceBaseTheme
+  ): string {
+    if (source.type === SourceType.BUILTIN) {
+      return baseTheme;
+    }
+
+    if (source.config.id) {
+      return source.config.id;
+    }
+
+    const themeKey = themeName.trim().length > 0 ? themeName : baseTheme;
+    return `${sourceId}:${themeKey}`;
+  }
+
+  private collectThemeDescriptorsFromTokens(
+    tokens: ExtendedTokenInfo[]
+  ): ThemeDescriptor[] {
+    const themes = new Map<string, ThemeDescriptor>();
+
+    for (const token of tokens) {
+      if (!token.themeId) {
+        continue;
+      }
+
+      themes.set(token.themeId, {
+        id: token.themeId,
+        name: token.themeName ?? token.themeId,
+        baseTheme: token.baseTheme ?? token.theme,
+        sourceId: token.sourceId,
+        sourceType: token.sourceType,
+        isBuiltin: token.source === 'builtin',
+        priority: token.priority,
+        metadata: {
+          sourceFile: token.sourceFile
+        }
+      });
+    }
+
+    return Array.from(themes.values());
+  }
+
+  private getConfiguredThemeDescriptors(
+    sourceId: string,
+    source: ITokenSource
+  ): ThemeDescriptor[] {
+    if (source.type === SourceType.BUILTIN) {
+      return [
+        {
+          id: 'light',
+          name: 'light',
+          baseTheme: 'light',
+          sourceId,
+          sourceType: source.type,
+          isBuiltin: true,
+          priority: source.config.priority
+        },
+        {
+          id: 'dark',
+          name: 'dark',
+          baseTheme: 'dark',
+          sourceId,
+          sourceType: source.type,
+          isBuiltin: true,
+          priority: source.config.priority
+        }
+      ];
+    }
+
+    const baseTheme = source.config.baseTheme ?? 'light';
+    const themeName =
+      source.config.themeName?.trim() || source.config.id || sourceId;
+    return [
+      {
+        id: source.config.id ?? `${sourceId}:${themeName}`,
+        name: themeName,
+        baseTheme,
+        sourceId,
+        sourceType: source.type,
+        isBuiltin: false,
+        priority: source.config.priority,
+        metadata: {
+          filePath: source.config.filePath
+        }
+      }
+    ];
+  }
+
+  private attachThemeMetadata(
+    metadata: Record<string, unknown> | undefined,
+    themes: ThemeDescriptor[]
+  ): Record<string, unknown> {
+    const nextMetadata: Record<string, unknown> = metadata
+      ? { ...metadata }
+      : {};
+
+    const serializedThemes = themes.map((theme) => ({
+      id: theme.id,
+      name: theme.name,
+      baseTheme: theme.baseTheme,
+      sourceId: theme.sourceId,
+      sourceType: theme.sourceType,
+      isBuiltin: theme.isBuiltin,
+      priority: theme.priority,
+      metadata: theme.metadata
+    }));
+
+    nextMetadata.themes = serializedThemes;
+
+    if (themes.length === 1) {
+      nextMetadata.themeId = themes[0].id;
+      nextMetadata.themeName = themes[0].name;
+      nextMetadata.baseTheme = themes[0].baseTheme;
+    }
+
+    return nextMetadata;
+  }
+
+  private getThemesFromMetadata(
+    metadata: Record<string, unknown> | undefined
+  ): ThemeDescriptor[] {
+    if (!metadata) {
+      return [];
+    }
+
+    const themesValue = metadata.themes;
+    if (!Array.isArray(themesValue)) {
+      return [];
+    }
+
+    const themes: ThemeDescriptor[] = [];
+
+    for (const theme of themesValue) {
+      if (!theme || typeof theme !== 'object') {
+        continue;
+      }
+
+      const candidate = theme as Record<string, unknown>;
+      const id = typeof candidate.id === 'string' ? candidate.id : undefined;
+      const name =
+        typeof candidate.name === 'string' ? candidate.name : undefined;
+      const baseTheme =
+        candidate.baseTheme === 'light' || candidate.baseTheme === 'dark'
+          ? candidate.baseTheme
+          : undefined;
+
+      if (!id || !name || !baseTheme) {
+        continue;
+      }
+
+      themes.push({
+        id,
+        name,
+        baseTheme,
+        sourceId:
+          typeof candidate.sourceId === 'string'
+            ? candidate.sourceId
+            : undefined,
+        sourceType: Object.values(SourceType).includes(
+          candidate.sourceType as SourceType
+        )
+          ? (candidate.sourceType as SourceType)
+          : undefined,
+        isBuiltin: candidate.isBuiltin === true,
+        priority:
+          typeof candidate.priority === 'number'
+            ? candidate.priority
+            : undefined,
+        metadata:
+          candidate.metadata && typeof candidate.metadata === 'object'
+            ? (candidate.metadata as Record<string, unknown>)
+            : undefined
+      });
+    }
+
+    return themes;
+  }
+
+  private refreshAvailableThemes(): void {
+    this.themeManager?.setAvailableThemes(this.getThemeDescriptors());
   }
 }

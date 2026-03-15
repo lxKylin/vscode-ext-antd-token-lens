@@ -22,14 +22,30 @@ export enum SourceType {
 
 export type SourceBaseTheme = 'light' | 'dark';
 
+export interface ThemeDescriptor {
+  id: string;
+  name: string;
+  baseTheme: SourceBaseTheme;
+  sourceId?: string;
+  sourceType?: SourceType;
+  isBuiltin?: boolean;
+  isActive?: boolean;
+  priority?: number;
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * Token 信息扩展（增加数据源相关字段）
  * 注意：为了兼容现有 TokenInfo，source 字段保持为 'builtin' | 'custom'
  */
 export interface ExtendedTokenInfo extends BaseTokenInfo {
   sourceType?: SourceType; // 详细的数据源类型
+  sourceId?: string; // 来源数据源 ID
   sourceFile?: string; // 来源文件路径
   priority?: number; // 优先级（用于多数据源冲突解决）
+  themeId?: string; // 命名主题 ID
+  themeName?: string; // 命名主题显示名
+  baseTheme?: SourceBaseTheme; // 命名主题所属基础主题
 }
 
 /**

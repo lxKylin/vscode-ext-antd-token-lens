@@ -140,6 +140,14 @@ const App = () => {
 
 ![示例9-1](./images/example-9-1.png)
 
+#### 阶段8.3：多命名主题并列预览
+
+- ✅ 同一工作区内可并列注册多套命名主题，不再局限于单一 Light / Dark 槽位
+- ✅ Hover 会优先展示当前活动命名主题，并列出其他命名主题下的值
+- ✅ Completion、颜色装饰、数值装饰、JS / TS Token 支持会跟随当前预览主题刷新
+- ✅ 新增命令 `antdToken.selectThemePreview`，可显式切换到某个命名主题，或恢复自动 / 默认预览
+- ✅ `antdToken.toggleThemePreview` 仍保留 Light / Dark 快速切换语义
+
 ## 使用示例
 
 ### 颜色可视化效果
@@ -192,7 +200,7 @@ const App = () => {
 
 - **Token 名称和语义**：了解 Token 的用途
 - **当前主题值**：查看当前主题下的实际值
-- **多主题对比**：同时显示 Light 和 Dark 主题的值
+- **多主题对比**：优先显示当前命名主题，并可查看其他命名主题 / 基础主题值
 - **颜色格式转换**：HEX、RGB、HSL 等多种格式
 - **颜色预览**：直观的颜色块显示
 - **快捷操作**：复制值、查找引用等
@@ -227,6 +235,7 @@ const App = () => {
 | Toggle Color Decorator    | `antdToken.toggleDecorator`    | 启用或禁用颜色装饰器                       |
 | 查找 Token 引用           | `antdToken.findReferences`     | 以全局搜索方式查找 `var(--ant-xxx)` 引用   |
 | 切换主题预览              | `antdToken.toggleThemePreview` | 在 Light / Dark 预览之间切换               |
+| 选择命名主题预览          | `antdToken.selectThemePreview` | 显式切换到某个命名主题，或恢复自动预览     |
 | 刷新 Token 数据           | `antdToken.refreshTokens`      | 重新加载 Token 数据并刷新装饰与补全缓存    |
 | 清空最近使用的 Token      | `antdToken.clearRecentTokens`  | 清除补全中的最近使用记录                   |
 | 重新加载 Token 数据源     | `antdToken.reloadSources`      | 重新加载内置与自定义数据源                 |
@@ -415,6 +424,8 @@ const App = () => {
 - 最近一次加载是否成功、token 数量、耗时
 - 最近一次错误码、错误摘要与 warning
 
+从阶段 8.3 开始，数据源详情和选择器还会显示该 source 当前贡献的命名主题列表。你可以通过 `Ant Design Token Lens: 选择命名主题预览` 查看全部可用主题，并切换当前预览主题。
+
 执行 `Ant Design Token Lens: 重新加载 Token 数据源`（命令 ID：`antdToken.reloadSources`）时，如果存在失败数据源，插件会给出成功/警告/失败数量摘要，并提示你进一步查看数据源状态。
 
 #### 常见失败场景
@@ -431,7 +442,23 @@ const App = () => {
 - 只支持解析项目本地安装的 `antd`，不会回退到扩展内置版本。
 - `filePath` 仅支持 `.json`、`.js`、`.cjs`、`.mjs`、`.ts`，并且只支持“导出纯对象”的文件。
 - 不支持函数导出、依赖复杂运行时、异步逻辑、环境变量或局部嵌套 `ConfigProvider` 推导。
-- 多命名主题展示仍通过 `baseTheme` 归并到 `light` / `dark`，完整命名主题模型会在后续阶段增强。
+- 不支持复杂业务逻辑下的动态主题推导。
+- 不支持组件级 token 的独立索引与展示模型。
+
+### 多命名主题说明
+
+`baseTheme` 仍然有效，但它现在只是“基础主题”维度，不再是唯一主题维度。插件内部会同时维护：
+
+- 基础主题：`light` / `dark`
+- 命名主题：例如 `brand-a`、`brand-light`、`brand-dark`
+- 当前预览主题：决定 Hover、Completion、Decorator、JS / TS Token 支持优先使用哪一套值
+
+兼容关系如下：
+
+- `antdToken.toggleThemePreview` 继续在基础 Light / Dark 之间切换
+- `antdToken.selectThemePreview` 用于显式选择某个命名主题
+- builtin / css / less / scss / antdTheme 数据源可以共存
+- 如果某个 token 在当前命名主题下不存在，会回退到对应基础主题的兼容结果
 
 ### 推荐配置示例
 

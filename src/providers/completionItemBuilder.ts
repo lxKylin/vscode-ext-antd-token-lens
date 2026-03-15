@@ -79,11 +79,16 @@ export class CompletionItemBuilder {
     context?: vscode.ExtensionContext
   ): vscode.CompletionItemLabel {
     let label = tokenInfo.name;
-    let description = tokenInfo.description || tokenInfo.category;
+    const themeLabel = this.buildThemeLabel(tokenInfo);
+    let description = tokenInfo.description || tokenInfo.category || themeLabel;
 
     // 标记最近使用
     if (isRecent) {
       description = `⏱️ ${description}`;
+    }
+
+    if (themeLabel && !description.includes(themeLabel)) {
+      description = `${description} · ${themeLabel}`;
     }
 
     // 对非颜色类 token，在 description 中追加具体值
@@ -111,6 +116,8 @@ export class CompletionItemBuilder {
     context?: vscode.ExtensionContext
   ): string | undefined {
     const detailLevel = Config.getCompletionDetailLevel();
+    const themeLabel = this.buildThemeLabel(tokenInfo);
+    const sourceLabel = this.buildSourceLabel(tokenInfo);
 
     // 颜色类型优先保证 detail 是可解析的颜色值（用于列表里的颜色预览）
     if (
@@ -138,7 +145,9 @@ export class CompletionItemBuilder {
     }
 
     // 非颜色类型：值已在 label description 中展示，detail 留空保持列表简洁
-    return undefined;
+    return [tokenInfo.value, themeLabel, sourceLabel]
+      .filter(Boolean)
+      .join(' · ');
   }
 
   /**
@@ -190,5 +199,28 @@ export class CompletionItemBuilder {
     }
 
     return tags.length > 0 ? tags : undefined;
+  }
+
+  private static buildThemeLabel(tokenInfo: any): string {
+    const themeName = tokenInfo.themeName || tokenInfo.themeId;
+    const baseTheme = tokenInfo.baseTheme || tokenInfo.theme;
+
+    if (themeName && baseTheme && themeName !== baseTheme) {
+      return `${themeName} (${baseTheme})`;
+    }
+
+    return themeName || baseTheme || '';
+  }
+
+  private static buildSourceLabel(tokenInfo: any): string {
+    if (tokenInfo.sourceType && tokenInfo.sourceId) {
+      return `${tokenInfo.sourceType}:${tokenInfo.sourceId}`;
+    }
+
+    if (tokenInfo.sourceType) {
+      return String(tokenInfo.sourceType);
+    }
+
+    return tokenInfo.source || '';
   }
 }

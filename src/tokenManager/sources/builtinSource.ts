@@ -32,6 +32,10 @@ export class BuiltinTokenSource extends BaseTokenSource {
       for (const token of [...builtinTokens.light, ...builtinTokens.dark]) {
         tokens.push({
           ...token,
+          baseTheme: token.theme,
+          themeId: token.theme,
+          themeName: token.theme,
+          sourceId: 'builtin',
           sourceType: SourceType.BUILTIN,
           priority: this.config.priority
         });

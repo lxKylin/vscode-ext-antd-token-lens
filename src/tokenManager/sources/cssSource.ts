@@ -95,11 +95,15 @@ export class CSSTokenSource extends BaseTokenSource {
         name: normalizedName,
         value: value.trim(),
         theme,
+        baseTheme: theme,
         category,
         source: 'custom', // 兼容现有 TokenInfo 类型
         sourceType: SourceType.CSS,
+        sourceId: this.config.id,
         sourceFile: filePath,
         priority: this.config.priority,
+        themeId: this.resolveThemeId(theme),
+        themeName: this.resolveThemeName(theme),
         isColor: this.isColorValue(value)
       });
     }
@@ -146,6 +150,27 @@ export class CSSTokenSource extends BaseTokenSource {
     });
 
     this.disposables.push(this.fileWatcher, this.onDidChangeEmitter);
+  }
+
+  private resolveThemeId(theme: 'light' | 'dark'): string {
+    if (this.config.id) {
+      return this.config.id;
+    }
+
+    const pathKey = (this.config.filePath ?? this.type).replace(
+      /[^a-zA-Z0-9_-]+/g,
+      '-'
+    );
+    return `${this.type}:${pathKey}:${theme}`;
+  }
+
+  private resolveThemeName(theme: 'light' | 'dark'): string {
+    return (
+      this.config.themeName?.trim() ||
+      this.config.id ||
+      path.basename(this.config.filePath || '') ||
+      theme
+    );
   }
 
   dispose(): void {

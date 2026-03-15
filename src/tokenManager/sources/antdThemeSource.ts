@@ -94,8 +94,11 @@ export class AntdThemeTokenSource extends BaseTokenSource {
         baseTheme: this.getResolvedBaseTheme(),
         priority: this.config.priority,
         source: 'custom',
+        sourceId: this.config.id,
         sourceFile: loadResult.sourceFile ?? this.config.filePath,
-        sourceType: SourceType.ANTD_THEME
+        sourceType: SourceType.ANTD_THEME,
+        themeId: this.getResolvedThemeId(),
+        themeName: this.getResolvedThemeName()
       });
     } catch (error) {
       const diagnostic = toSourceDiagnostic(error, {
@@ -225,6 +228,13 @@ export class AntdThemeTokenSource extends BaseTokenSource {
     return this.config.themeName?.trim() || this.config.id || 'antdTheme';
   }
 
+  private getResolvedThemeId(): string {
+    return (
+      this.config.id?.trim() ||
+      `${SourceType.ANTD_THEME}:${this.getResolvedThemeName()}`
+    );
+  }
+
   private getResolvedBaseTheme(): 'light' | 'dark' {
     return this.config.baseTheme ?? 'light';
   }
@@ -248,6 +258,7 @@ export class AntdThemeTokenSource extends BaseTokenSource {
 
   private buildBaseMetadata(): Record<string, unknown> {
     return {
+      themeId: this.getResolvedThemeId(),
       themeName: this.getResolvedThemeName(),
       baseTheme: this.getResolvedBaseTheme(),
       configuredFilePath: this.config.filePath,

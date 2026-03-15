@@ -14,6 +14,10 @@ export const tokenRegistry = new TokenRegistry();
 /** 全局主题管理器单例 */
 export const themeManager = new ThemeManager();
 
+tokenRegistry.setActiveThemeResolver(() =>
+  themeManager.getCurrentThemeDescriptor()
+);
+
 /** 全局数据源管理器 */
 let sourceManager: SourceManager | undefined;
 
@@ -37,7 +41,7 @@ export async function initializeTokenRegistry(
 
   try {
     // 创建数据源管理器
-    sourceManager = new SourceManager(tokenRegistry, assetsPath);
+    sourceManager = new SourceManager(tokenRegistry, assetsPath, themeManager);
     await sourceManager.initialize();
 
     // 创建并启动自动扫描器

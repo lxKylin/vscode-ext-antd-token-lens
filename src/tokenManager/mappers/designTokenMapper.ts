@@ -8,6 +8,9 @@ export interface DesignTokenMapperOptions {
   sourceFile?: string;
   source?: 'builtin' | 'custom';
   sourceType?: SourceType;
+  sourceId?: string;
+  themeId?: string;
+  themeName?: string;
 }
 
 export function mapDesignTokens(
@@ -30,11 +33,15 @@ export function mapDesignTokens(
       name,
       value,
       theme: options.baseTheme,
+      baseTheme: options.baseTheme,
       category: inferTokenCategory(name),
       source: options.source ?? 'custom',
       sourceType: options.sourceType ?? SourceType.ANTD_THEME,
+      sourceId: options.sourceId,
       sourceFile: options.sourceFile,
       priority: options.priority,
+      themeId: options.themeId,
+      themeName: options.themeName,
       isColor: isColorValue(value)
     });
   }

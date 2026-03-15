@@ -117,8 +117,8 @@ export class AntdTokenCompletionProvider
     const completionType = CompletionTrigger.getCompletionType(triggerContext);
 
     // 获取所有 Token（从当前主题）
-    const currentTheme = this.themeManager.getCurrentTheme();
-    const allTokens = this.tokenRegistry.getByTheme(currentTheme);
+    const currentThemeQuery = this.themeManager.getCurrentTokenQuery();
+    const allTokens = this.tokenRegistry.getEffectiveTokens(currentThemeQuery);
 
     // 过滤
     let tokens = this.filterTokens(allTokens, triggerContext.filterText);
