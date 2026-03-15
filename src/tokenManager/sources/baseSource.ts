@@ -9,9 +9,18 @@ import {
   SourceType,
   ExtendedTokenInfo
 } from '../sourceTypes';
+import {
+  SourceDiagnostic,
+  SourceErrorCode,
+  SourceValidationResult,
+  toSourceDiagnostic
+} from '../sourceDiagnostics';
 
 export abstract class BaseTokenSource implements ITokenSource {
   protected disposables: vscode.Disposable[] = [];
+  protected lastError?: SourceDiagnostic;
+  protected warnings: SourceDiagnostic[] = [];
+  protected runtimeMetadata?: Record<string, unknown>;
 
   constructor(
     public readonly type: SourceType,
@@ -30,11 +39,55 @@ export abstract class BaseTokenSource implements ITokenSource {
     return this.config.enabled;
   }
 
+  async validateDetailed(): Promise<SourceValidationResult> {
+    try {
+      const valid = await this.validate();
+      const error = valid
+        ? undefined
+        : {
+            severity: 'error' as const,
+            code: SourceErrorCode.VALIDATION_FAILED,
+            message: '数据源校验失败'
+          };
+      this.setDiagnostics(error, [], this.runtimeMetadata);
+      return {
+        valid,
+        error,
+        warnings: this.warnings,
+        metadata: this.runtimeMetadata
+      };
+    } catch (error) {
+      const diagnostic = toSourceDiagnostic(error, {
+        code: SourceErrorCode.VALIDATION_FAILED,
+        message: '数据源校验失败'
+      });
+      this.setDiagnostics(diagnostic, [], this.runtimeMetadata);
+      return {
+        valid: false,
+        error: diagnostic,
+        warnings: this.warnings,
+        metadata: this.runtimeMetadata
+      };
+    }
+  }
+
   /**
    * 获取描述信息（子类可覆盖）
    */
   getDescription(): string {
     return `${this.type} source`;
+  }
+
+  getLastError(): SourceDiagnostic | undefined {
+    return this.lastError;
+  }
+
+  getWarnings(): SourceDiagnostic[] {
+    return [...this.warnings];
+  }
+
+  getRuntimeMetadata(): Record<string, unknown> | undefined {
+    return this.runtimeMetadata ? { ...this.runtimeMetadata } : undefined;
   }
 
   /**
@@ -150,5 +203,19 @@ export abstract class BaseTokenSource implements ITokenSource {
     }
 
     return false;
+  }
+
+  protected setDiagnostics(
+    error?: SourceDiagnostic,
+    warnings: SourceDiagnostic[] = [],
+    metadata?: Record<string, unknown>
+  ): void {
+    this.lastError = error;
+    this.warnings = [...warnings];
+    this.runtimeMetadata = metadata ? { ...metadata } : undefined;
+  }
+
+  protected clearDiagnostics(metadata?: Record<string, unknown>): void {
+    this.setDiagnostics(undefined, [], metadata);
   }
 }

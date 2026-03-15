@@ -41,7 +41,7 @@ export class BuiltinTokenSource extends BaseTokenSource {
       return tokens;
     } catch (error) {
       console.error('[BuiltinSource] Load failed:', error);
-      return [];
+      throw error;
     }
   }
 

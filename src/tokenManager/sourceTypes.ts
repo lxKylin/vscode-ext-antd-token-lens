@@ -3,6 +3,11 @@
  */
 
 import { TokenInfo as BaseTokenInfo } from '@/data/antdTokens';
+import {
+  SourceDiagnostic,
+  SourceHealth,
+  SourceValidationResult
+} from './sourceDiagnostics';
 
 /**
  * Token 数据源类型
@@ -76,9 +81,29 @@ export interface ITokenSource {
   validate(): Promise<boolean>;
 
   /**
+   * 带结构化诊断信息的验证结果
+   */
+  validateDetailed(): Promise<SourceValidationResult>;
+
+  /**
    * 获取数据源描述信息
    */
   getDescription(): string;
+
+  /**
+   * 获取最近一次结构化错误
+   */
+  getLastError(): SourceDiagnostic | undefined;
+
+  /**
+   * 获取最近一次警告信息
+   */
+  getWarnings(): SourceDiagnostic[];
+
+  /**
+   * 获取最近一次运行时元数据
+   */
+  getRuntimeMetadata(): Record<string, unknown> | undefined;
 
   /**
    * 清理资源（如文件监听器）
@@ -86,13 +111,30 @@ export interface ITokenSource {
   dispose(): void;
 }
 
+export interface SourceRuntimeStatus {
+  sourceId: string;
+  sourceType: SourceType;
+  enabled: boolean;
+  health: SourceHealth;
+  description: string;
+  lastLoadedAt?: number;
+  tokenCount?: number;
+  loadTime?: number;
+  errorCode?: string;
+  errorMessage?: string;
+  warnings?: SourceDiagnostic[];
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * 数据源加载结果
  */
 export interface LoadResult {
+  sourceId?: string;
   success: boolean;
   tokens: ExtendedTokenInfo[];
   source: SourceType;
   error?: string;
   loadTime?: number;
+  status?: SourceRuntimeStatus;
 }

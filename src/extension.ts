@@ -23,6 +23,11 @@ import { loadBuiltinTokens } from './data/antdTokens';
 import { JsTokenScanner } from './tokenManager/jsTokenScanner';
 import { JsTokenHoverProvider } from './providers/javascript/jsHoverProvider';
 import { JsTokenCompletionProvider } from './providers/javascript/jsCompletionProvider';
+import {
+  formatReloadSummary,
+  formatSourceQuickPickItem,
+  formatSourceStatusDetail
+} from '@/tokenManager/sourceStatusFormatter';
 
 let decorationManager: DocumentDecorationManager | undefined;
 let completionProvider: AntdTokenCompletionProvider | undefined;
@@ -436,29 +441,62 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('antdToken.reloadSources', async () => {
       const sourceManager = getSourceManager();
       if (sourceManager) {
-        await sourceManager.reload();
-        vscode.window.showInformationMessage('Token 数据源已重新加载');
+        const results = await sourceManager.reload();
+        const statuses = results.flatMap((result) =>
+          result.status ? [result.status] : []
+        );
+        const summary = formatReloadSummary(statuses);
+
+        if (statuses.some((status) => status.health === 'error')) {
+          vscode.window.showWarningMessage(
+            `${summary}。可执行“查看 Token 数据源”检查失败原因。`
+          );
+        } else if (statuses.some((status) => status.health === 'warning')) {
+          vscode.window.showInformationMessage(
+            `${summary}。存在警告，可在“查看 Token 数据源”中查看详情。`
+          );
+        } else {
+          vscode.window.showInformationMessage(summary);
+        }
       } else {
         vscode.window.showWarningMessage('数据源管理器未初始化');
       }
     }),
-    vscode.commands.registerCommand('antdToken.showSources', () => {
+    vscode.commands.registerCommand('antdToken.showSources', async () => {
       const sourceManager = getSourceManager();
       if (!sourceManager) {
         vscode.window.showWarningMessage('数据源管理器未初始化');
         return;
       }
 
-      const sources = sourceManager.getSourcesInfo();
-      const items = sources.map((s) => ({
-        label: s.description,
-        detail: `类型: ${s.type} | 优先级: ${s.priority} | ${s.enabled ? '已启用' : '已禁用'}`,
-        description: s.id
-      }));
+      const statuses = sourceManager.getSourceStatuses();
+      const items = statuses.map((status) => formatSourceQuickPickItem(status));
 
-      vscode.window.showQuickPick(items, {
+      const selected = await vscode.window.showQuickPick(items, {
         title: 'Token 数据源',
         placeHolder: '当前加载的数据源列表'
+      });
+
+      if (!selected) {
+        return;
+      }
+
+      const sourceStatus = statuses.find(
+        (status) => status.sourceId === selected.sourceId
+      );
+
+      if (!sourceStatus) {
+        return;
+      }
+
+      const document = await vscode.workspace.openTextDocument({
+        language: 'markdown',
+        content: formatSourceStatusDetail(sourceStatus)
+      });
+
+      await vscode.window.showTextDocument(document, {
+        preview: true,
+        viewColumn: vscode.ViewColumn.Beside
       });
     }),
     vscode.commands.registerCommand('antdToken.rescanTokenFiles', async () => {

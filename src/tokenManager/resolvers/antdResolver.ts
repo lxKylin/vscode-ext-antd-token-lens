@@ -3,10 +3,14 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { createRequire } from 'node:module';
 import { AntdThemeSourceConfig } from '../sourceTypes';
+import { SourceErrorCode, TokenSourceError } from '../sourceDiagnostics';
 
 export interface ResolvedAntdThemeApi {
   packagePath: string;
   version?: string;
+  resolvedFrom: string;
+  attemptedStartDirs: string[];
+  allowWorkspaceFallback: boolean;
   getDesignToken: (
     themeConfig?: Record<string, unknown>
   ) => Record<string, unknown>;
@@ -17,10 +21,17 @@ export interface ResolvedAntdThemeApi {
   };
 }
 
+export interface ResolvedAlgorithmResult {
+  themeConfig: Record<string, unknown>;
+  summary: string[];
+}
+
 export class AntdResolver {
   async resolve(config: AntdThemeSourceConfig): Promise<ResolvedAntdThemeApi> {
-    const startDirs = this.getResolutionStartDirs(config);
+    const { startDirs, allowWorkspaceFallback } =
+      this.getResolutionStartDirs(config);
     const failures: string[] = [];
+    let packageNotFound = false;
 
     for (const startDir of startDirs) {
       try {
@@ -53,20 +64,25 @@ export class AntdResolver {
 
         const themeApi = antdModule.theme ?? antdModule.default?.theme;
         if (!themeApi?.getDesignToken) {
-          throw new Error(
-            'Resolved antd package does not expose theme.getDesignToken()'
-          );
+          throw new TokenSourceError({
+            code: SourceErrorCode.ANTD_GET_DESIGN_TOKEN_UNAVAILABLE,
+            message: '解析到的 antd 包未暴露 theme.getDesignToken()'
+          });
         }
 
         return {
           packagePath: packageDir,
           version: packageJson.version,
+          resolvedFrom: startDir,
+          attemptedStartDirs: startDirs,
+          allowWorkspaceFallback,
           getDesignToken: (themeConfig?: Record<string, unknown>) => {
             const result = themeApi.getDesignToken?.(themeConfig);
             if (!isPlainObject(result)) {
-              throw new Error(
-                'theme.getDesignToken() must return a plain object'
-              );
+              throw new TokenSourceError({
+                code: SourceErrorCode.ANTD_GET_DESIGN_TOKEN_INVALID_RETURN,
+                message: 'theme.getDesignToken() 返回值不是纯对象'
+              });
             }
             return result;
           },
@@ -77,28 +93,53 @@ export class AntdResolver {
           }
         };
       } catch (error) {
-        failures.push(
-          `${startDir}: ${error instanceof Error ? error.message : String(error)}`
-        );
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("Cannot find module 'antd/package.json'")) {
+          packageNotFound = true;
+        }
+        failures.push(`${startDir}: ${message}`);
       }
     }
 
-    throw new Error(
-      `Failed to resolve project local antd. Attempted from: ${startDirs.join(', ')}. Reasons: ${failures.join(' | ')}`
-    );
+    throw new TokenSourceError({
+      code: packageNotFound
+        ? SourceErrorCode.ANTD_PACKAGE_NOT_FOUND
+        : SourceErrorCode.ANTD_RESOLVE_FAILED,
+      message:
+        '无法解析项目本地 antd，请检查依赖安装位置与 resolveFromWorkspace 配置',
+      details: `尝试起点: ${startDirs.join(', ')}; 允许工作区回退: ${allowWorkspaceFallback ? '是' : '否'}; 失败原因: ${failures.join(' | ')}`,
+      metadata: {
+        attemptedStartDirs: startDirs,
+        allowWorkspaceFallback,
+        failures
+      }
+    });
   }
 
   resolveAlgorithms(
     themeConfig: Record<string, unknown>,
     algorithms: ResolvedAntdThemeApi['algorithms']
   ): Record<string, unknown> {
+    return this.resolveAlgorithmsDetailed(themeConfig, algorithms).themeConfig;
+  }
+
+  resolveAlgorithmsDetailed(
+    themeConfig: Record<string, unknown>,
+    algorithms: ResolvedAntdThemeApi['algorithms']
+  ): ResolvedAlgorithmResult {
     if (!('algorithm' in themeConfig)) {
-      return themeConfig;
+      return {
+        themeConfig,
+        summary: []
+      };
     }
 
     return {
-      ...themeConfig,
-      algorithm: this.resolveAlgorithmValue(themeConfig.algorithm, algorithms)
+      themeConfig: {
+        ...themeConfig,
+        algorithm: this.resolveAlgorithmValue(themeConfig.algorithm, algorithms)
+      },
+      summary: this.summarizeAlgorithmValue(themeConfig.algorithm)
     };
   }
 
@@ -143,17 +184,43 @@ export class AntdResolver {
         }
         break;
       default:
-        throw new Error(
-          `Unsupported algorithm alias "${name}". Supported values are: default, dark, compact`
-        );
+        throw new TokenSourceError({
+          code: SourceErrorCode.ANTD_ALGORITHM_UNKNOWN,
+          message: `无法识别算法标记 ${name}，仅支持 default、dark、compact`,
+          metadata: {
+            algorithm: name
+          }
+        });
     }
 
-    throw new Error(
-      `Algorithm alias "${name}" is not available in the resolved antd package`
-    );
+    throw new TokenSourceError({
+      code: SourceErrorCode.ANTD_ALGORITHM_UNAVAILABLE,
+      message: `当前解析到的 antd 包不支持算法标记 ${name}`,
+      metadata: {
+        algorithm: name
+      }
+    });
   }
 
-  private getResolutionStartDirs(config: AntdThemeSourceConfig): string[] {
+  private summarizeAlgorithmValue(algorithmValue: unknown): string[] {
+    if (typeof algorithmValue === 'string') {
+      return [algorithmValue];
+    }
+
+    if (
+      Array.isArray(algorithmValue) &&
+      algorithmValue.every((item) => typeof item === 'string')
+    ) {
+      return [...algorithmValue];
+    }
+
+    return [];
+  }
+
+  private getResolutionStartDirs(config: AntdThemeSourceConfig): {
+    startDirs: string[];
+    allowWorkspaceFallback: boolean;
+  } {
     const startDirs: string[] = [];
 
     if (config.filePath) {
@@ -170,7 +237,10 @@ export class AntdResolver {
       startDirs.push(process.cwd());
     }
 
-    return Array.from(new Set(startDirs.map((dir) => path.resolve(dir))));
+    return {
+      startDirs: Array.from(new Set(startDirs.map((dir) => path.resolve(dir)))),
+      allowWorkspaceFallback: config.resolveFromWorkspace !== false
+    };
   }
 }
 

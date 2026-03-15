@@ -16,6 +16,13 @@ import {
   mapDesignTokens,
   DesignTokenMapperOptions
 } from '../mappers/designTokenMapper';
+import {
+  createWarning,
+  SourceDiagnostic,
+  SourceErrorCode,
+  SourceValidationResult,
+  toSourceDiagnostic
+} from '../sourceDiagnostics';
 
 interface AntdThemeSourceDependencies {
   themeConfigLoader?: ThemeConfigLoader;
@@ -64,59 +71,128 @@ export class AntdThemeTokenSource extends BaseTokenSource {
 
   async load(): Promise<ExtendedTokenInfo[]> {
     try {
-      const { themeConfig, sourceFile } = await this.themeConfigLoader.load(
-        this.config
-      );
+      const loadResult = await this.themeConfigLoader.load(this.config);
       const resolvedAntd = await this.antdResolver.resolve(this.config);
-      const normalizedThemeConfig = this.antdResolver.resolveAlgorithms(
-        themeConfig,
+      const algorithmResult = this.antdResolver.resolveAlgorithmsDetailed(
+        loadResult.themeConfig,
         resolvedAntd.algorithms
       );
-      const designTokens = resolvedAntd.getDesignToken(normalizedThemeConfig);
+      const designTokens = resolvedAntd.getDesignToken(
+        algorithmResult.themeConfig
+      );
+      const warnings = this.collectWarnings(loadResult.warnings);
+      const metadata = this.buildMetadata(
+        loadResult,
+        warnings,
+        resolvedAntd,
+        algorithmResult.summary
+      );
+
+      this.setDiagnostics(undefined, warnings, metadata);
 
       return this.designTokenMapper(designTokens, {
-        baseTheme: this.config.baseTheme ?? 'light',
+        baseTheme: this.getResolvedBaseTheme(),
         priority: this.config.priority,
         source: 'custom',
-        sourceFile: sourceFile ?? this.config.filePath,
+        sourceFile: loadResult.sourceFile ?? this.config.filePath,
         sourceType: SourceType.ANTD_THEME
       });
     } catch (error) {
+      const diagnostic = toSourceDiagnostic(error, {
+        code: SourceErrorCode.LOAD_FAILED,
+        message: 'antdTheme 数据源加载失败'
+      });
+      const runtimeMetadata = this.getRuntimeMetadata();
+      const metadata = {
+        ...this.buildBaseMetadata(),
+        lastOutcome: 'error'
+      };
+      if (runtimeMetadata) {
+        Object.assign(metadata, runtimeMetadata);
+      }
+      this.setDiagnostics(diagnostic, this.getWarnings(), metadata);
       console.error('[AntdThemeSource] Load failed:', error);
-      return [];
+      throw error;
     }
   }
 
   async validate(): Promise<boolean> {
+    const result = await this.validateDetailed();
+    return result.valid;
+  }
+
+  override async validateDetailed(): Promise<SourceValidationResult> {
     if (this.config.enabled === false) {
-      return false;
+      const metadata = {
+        ...this.buildBaseMetadata(),
+        lastOutcome: 'idle'
+      };
+      this.clearDiagnostics(metadata);
+      return {
+        valid: false,
+        warnings: [],
+        metadata
+      };
     }
 
-    if (
-      !this.config.themeConfig &&
-      !this.config.designToken &&
-      !this.config.filePath
-    ) {
-      return false;
-    }
+    const baseWarnings = this.collectWarnings();
 
     if (this.config.filePath) {
       try {
         await fs.access(this.config.filePath);
-      } catch {
-        return false;
+      } catch (error) {
+        const diagnostic = toSourceDiagnostic(error, {
+          code: SourceErrorCode.FILE_NOT_FOUND,
+          message: `主题文件不存在或不可访问: ${this.config.filePath}`
+        });
+        const metadata = {
+          ...this.buildBaseMetadata(),
+          lastOutcome: 'error'
+        };
+        this.setDiagnostics(diagnostic, baseWarnings, metadata);
+        return {
+          valid: false,
+          error: diagnostic,
+          warnings: baseWarnings,
+          metadata
+        };
       }
     }
 
-    return true;
+    try {
+      const loadResult = await this.themeConfigLoader.load(this.config);
+      const warnings = this.collectWarnings(loadResult.warnings);
+      const metadata = this.buildMetadata(loadResult, warnings);
+      this.setDiagnostics(undefined, warnings, metadata);
+      return {
+        valid: true,
+        warnings,
+        metadata
+      };
+    } catch (error) {
+      const diagnostic = toSourceDiagnostic(error, {
+        code: SourceErrorCode.VALIDATION_FAILED,
+        message: 'antdTheme 配置校验失败'
+      });
+      const metadata = {
+        ...this.buildBaseMetadata(),
+        lastOutcome: 'error'
+      };
+      this.setDiagnostics(diagnostic, baseWarnings, metadata);
+      return {
+        valid: false,
+        error: diagnostic,
+        warnings: baseWarnings,
+        metadata
+      };
+    }
   }
 
   getDescription(): string {
     const sourceLabel = this.config.filePath
       ? path.basename(this.config.filePath)
       : 'inline';
-    const themeName = this.config.themeName ?? this.config.id ?? 'unnamed';
-    return `Antd Theme: ${themeName} (${sourceLabel}, ${this.config.baseTheme ?? 'light'})`;
+    return `Antd Theme: ${this.getResolvedThemeName()} (${sourceLabel}, ${this.getResolvedBaseTheme()})`;
   }
 
   dispose(): void {
@@ -143,5 +219,68 @@ export class AntdThemeTokenSource extends BaseTokenSource {
     });
 
     this.disposables.push(this.fileWatcher, this.onDidChangeEmitter);
+  }
+
+  private getResolvedThemeName(): string {
+    return this.config.themeName?.trim() || this.config.id || 'antdTheme';
+  }
+
+  private getResolvedBaseTheme(): 'light' | 'dark' {
+    return this.config.baseTheme ?? 'light';
+  }
+
+  private collectWarnings(
+    loaderWarnings: SourceDiagnostic[] = []
+  ): SourceDiagnostic[] {
+    const warnings = [...loaderWarnings];
+
+    if (this.config.watch && !this.config.filePath) {
+      warnings.push(
+        createWarning(
+          SourceErrorCode.CONFIG_WATCH_REQUIRES_FILEPATH,
+          'watch 已启用，但未提供 filePath，文件监听不会生效'
+        )
+      );
+    }
+
+    return warnings;
+  }
+
+  private buildBaseMetadata(): Record<string, unknown> {
+    return {
+      themeName: this.getResolvedThemeName(),
+      baseTheme: this.getResolvedBaseTheme(),
+      configuredFilePath: this.config.filePath,
+      sourceLocation: this.config.filePath ?? 'inline',
+      exportName: this.config.exportName,
+      resolveFromWorkspace: this.config.resolveFromWorkspace !== false,
+      priority: this.config.priority,
+      watch: this.config.watch === true
+    };
+  }
+
+  private buildMetadata(
+    loadResult: ThemeConfigLoadResult,
+    warnings: SourceDiagnostic[],
+    resolvedAntd?: ResolvedAntdThemeApi,
+    algorithmSummary: string[] = []
+  ): Record<string, unknown> {
+    return {
+      ...this.buildBaseMetadata(),
+      entryType: loadResult.entryType,
+      inputKind: loadResult.inputKind,
+      sourceLocation: loadResult.resolvedFilePath ?? 'inline',
+      resolvedFilePath: loadResult.resolvedFilePath,
+      usedExportName: loadResult.usedExportName,
+      usedExportKind: loadResult.usedExportKind,
+      antdVersion: resolvedAntd?.version,
+      antdPackagePath: resolvedAntd?.packagePath,
+      antdResolvedFrom: resolvedAntd?.resolvedFrom,
+      antdAttemptedStartDirs: resolvedAntd?.attemptedStartDirs,
+      allowWorkspaceFallback: resolvedAntd?.allowWorkspaceFallback,
+      algorithmSummary,
+      warningMessages: warnings.map((warning) => warning.message),
+      lastOutcome: warnings.length > 0 ? 'warning' : 'ok'
+    };
   }
 }

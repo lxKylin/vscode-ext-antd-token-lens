@@ -1,6 +1,10 @@
 import * as assert from 'node:assert';
 import * as path from 'node:path';
 import { ThemeConfigLoader } from '@/tokenManager/resolvers/themeConfigLoader';
+import {
+  SourceErrorCode,
+  TokenSourceError
+} from '@/tokenManager/sourceDiagnostics';
 import { SourceType } from '@/tokenManager/sourceTypes';
 import {
   createTempWorkspace,
@@ -36,6 +40,8 @@ suite('ThemeConfigLoader Test Suite', () => {
         colorPrimary: '#13c2c2'
       }
     });
+    assert.strictEqual(result.entryType, 'designToken');
+    assert.strictEqual(result.inputKind, 'inlineDesignToken');
   });
 
   test('passes inline themeConfig through', async () => {
@@ -57,6 +63,29 @@ suite('ThemeConfigLoader Test Suite', () => {
       },
       algorithm: ['dark']
     });
+    assert.strictEqual(result.entryType, 'themeConfig');
+    assert.strictEqual(result.inputKind, 'inlineThemeConfig');
+  });
+
+  test('uses higher priority input and reports ignored lower priority fields', async () => {
+    const result = await loader.load({
+      type: SourceType.ANTD_THEME,
+      enabled: true,
+      priority: 1,
+      themeConfig: {
+        token: {
+          colorPrimary: '#177ddc'
+        }
+      },
+      designToken: {
+        colorPrimary: '#13c2c2'
+      },
+      filePath: path.join(tempDir, 'theme.ts')
+    });
+
+    assert.strictEqual(result.entryType, 'themeConfig');
+    assert.strictEqual(result.warnings.length, 1);
+    assert.match(result.warnings[0].message, /实际采用 themeConfig/);
   });
 
   test('loads theme config from JSON file', async () => {
@@ -82,6 +111,7 @@ suite('ThemeConfigLoader Test Suite', () => {
       }
     });
     assert.strictEqual(result.sourceFile, filePath);
+    assert.strictEqual(result.usedExportKind, 'default');
   });
 
   test('loads named export from JS file', async () => {
@@ -103,6 +133,8 @@ suite('ThemeConfigLoader Test Suite', () => {
         colorPrimary: '#2f54eb'
       }
     });
+    assert.strictEqual(result.usedExportName, 'themeConfig');
+    assert.strictEqual(result.usedExportKind, 'named');
   });
 
   test('loads default export from TS file', async () => {
@@ -124,6 +156,50 @@ suite('ThemeConfigLoader Test Suite', () => {
       },
       algorithm: ['compact']
     });
+    assert.strictEqual(result.usedExportName, 'default');
+  });
+
+  test('rejects invalid inline designToken values', async () => {
+    await assert.rejects(
+      () =>
+        loader.load({
+          type: SourceType.ANTD_THEME,
+          enabled: true,
+          priority: 1,
+          designToken: [] as unknown as Record<string, unknown>
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof TokenSourceError);
+        assert.strictEqual(
+          error.code,
+          SourceErrorCode.CONFIG_INVALID_DESIGN_TOKEN
+        );
+        return true;
+      }
+    );
+  });
+
+  test('rejects missing export name clearly', async () => {
+    const filePath = path.join(tempDir, 'theme.js');
+    await writeWorkspaceFiles(tempDir, {
+      'theme.js': `export const otherTheme = { token: { colorPrimary: '#2f54eb' } };`
+    });
+
+    await assert.rejects(
+      () =>
+        loader.load({
+          type: SourceType.ANTD_THEME,
+          enabled: true,
+          priority: 1,
+          filePath,
+          exportName: 'themeConfig'
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof TokenSourceError);
+        assert.strictEqual(error.code, SourceErrorCode.EXPORT_NOT_FOUND);
+        return true;
+      }
+    );
   });
 
   test('rejects function exports', async () => {
@@ -140,7 +216,12 @@ suite('ThemeConfigLoader Test Suite', () => {
           priority: 1,
           filePath
         }),
-      /Function exports are not supported/
+      (error: unknown) => {
+        assert.ok(error instanceof TokenSourceError);
+        assert.strictEqual(error.code, SourceErrorCode.EXPORT_IS_FUNCTION);
+        assert.match(error.message, /Function exports are not supported/);
+        return true;
+      }
     );
   });
 });

@@ -13,15 +13,23 @@ import {
   SourceType,
   ExtendedTokenInfo,
   LoadResult,
-  AntdThemeSourceConfig
+  AntdThemeSourceConfig,
+  SourceRuntimeStatus
 } from './sourceTypes';
 import { BuiltinTokenSource } from './sources/builtinSource';
 import { CSSTokenSource } from './sources/cssSource';
 import { AntdThemeTokenSource } from './sources/antdThemeSource';
 import { Config } from '../utils/config';
+import {
+  SourceDiagnostic,
+  SourceErrorCode,
+  SourceHealth,
+  toSourceDiagnostic
+} from './sourceDiagnostics';
 
 export class SourceManager implements vscode.Disposable {
   private readonly sources: Map<string, ITokenSource> = new Map();
+  private readonly sourceStatuses: Map<string, SourceRuntimeStatus> = new Map();
   private disposables: vscode.Disposable[] = [];
   private readonly onDidSourcesChangeEmitter = new vscode.EventEmitter<void>();
   public readonly onDidSourcesChange = this.onDidSourcesChangeEmitter.event;
@@ -79,22 +87,37 @@ export class SourceManager implements vscode.Disposable {
       console.error(`[SourceManager] Failed to create source: ${config.type}`);
       return;
     }
-
-    // 验证数据源
-    const isValid = await source.validate();
-    if (!isValid) {
-      console.warn(`[SourceManager] Source validation failed: ${sourceId}`);
-      source.dispose();
-      return;
-    }
-
-    // 添加到管理器
     this.sources.set(sourceId, source);
 
     // 监听文件变更（如果支持）
     if ('onDidChange' in source) {
       const onChange = (source as any).onDidChange as vscode.Event<void>;
       this.disposables.push(onChange(() => this.handleSourceChange(sourceId)));
+    }
+
+    if (source.config.enabled) {
+      const validationResult = await source.validateDetailed();
+      const health = validationResult.valid
+        ? this.getHealthFromWarnings(validationResult.warnings)
+        : 'error';
+      this.updateSourceStatus(
+        sourceId,
+        this.createStatus(sourceId, source, health, {
+          error: validationResult.error,
+          warnings: validationResult.warnings,
+          metadata: validationResult.metadata
+        })
+      );
+    } else {
+      this.updateSourceStatus(
+        sourceId,
+        this.createStatus(sourceId, source, 'idle', {
+          metadata: {
+            ...this.getDefaultMetadata(source),
+            lastOutcome: 'idle'
+          }
+        })
+      );
     }
 
     console.log(
@@ -110,6 +133,7 @@ export class SourceManager implements vscode.Disposable {
     if (source) {
       source.dispose();
       this.sources.delete(sourceId);
+      this.sourceStatuses.delete(sourceId);
       console.log(`[SourceManager] Source removed: ${sourceId}`);
     }
   }
@@ -141,11 +165,63 @@ export class SourceManager implements vscode.Disposable {
   async loadSource(sourceId: string): Promise<LoadResult> {
     const source = this.sources.get(sourceId);
     if (!source) {
+      const status: SourceRuntimeStatus = {
+        sourceId,
+        sourceType: SourceType.BUILTIN,
+        enabled: false,
+        health: 'error',
+        description: 'missing source',
+        errorCode: SourceErrorCode.LOAD_FAILED,
+        errorMessage: 'Source not found'
+      };
       return {
+        sourceId,
         success: false,
         tokens: [],
         source: SourceType.BUILTIN,
-        error: 'Source not found'
+        error: 'Source not found',
+        status
+      };
+    }
+
+    if (!source.config.enabled) {
+      const runtimeMetadata = source.getRuntimeMetadata();
+      const idleMetadata = {
+        ...this.getDefaultMetadata(source),
+        lastOutcome: 'idle'
+      };
+      if (runtimeMetadata) {
+        Object.assign(idleMetadata, runtimeMetadata);
+      }
+      const status = this.createStatus(sourceId, source, 'idle', {
+        metadata: idleMetadata
+      });
+      this.updateSourceStatus(sourceId, status);
+      return {
+        sourceId,
+        success: false,
+        tokens: [],
+        source: source.type,
+        status
+      };
+    }
+
+    const validationResult = await source.validateDetailed();
+    if (!validationResult.valid) {
+      const status = this.createStatus(sourceId, source, 'error', {
+        error: validationResult.error,
+        warnings: validationResult.warnings,
+        metadata: validationResult.metadata,
+        lastLoadedAt: Date.now()
+      });
+      this.updateSourceStatus(sourceId, status);
+      return {
+        sourceId,
+        success: false,
+        tokens: [],
+        source: source.type,
+        error: validationResult.error?.message,
+        status
       };
     }
 
@@ -162,19 +238,50 @@ export class SourceManager implements vscode.Disposable {
         `[SourceManager] Loaded ${tokens.length} tokens from ${sourceId} in ${loadTime}ms`
       );
 
+      const status = this.createStatus(
+        sourceId,
+        source,
+        this.getHealthFromWarnings(source.getWarnings()),
+        {
+          warnings: source.getWarnings(),
+          metadata: source.getRuntimeMetadata(),
+          tokenCount: tokens.length,
+          loadTime,
+          lastLoadedAt: Date.now()
+        }
+      );
+      this.updateSourceStatus(sourceId, status);
+
       return {
+        sourceId,
         success: true,
         tokens,
         source: source.type,
-        loadTime
+        loadTime,
+        status
       };
     } catch (error) {
       console.error(`[SourceManager] Load failed: ${sourceId}`, error);
+      const diagnostic =
+        source.getLastError() ??
+        toSourceDiagnostic(error, {
+          code: SourceErrorCode.LOAD_FAILED,
+          message: '数据源加载失败'
+        });
+      const status = this.createStatus(sourceId, source, 'error', {
+        error: diagnostic,
+        warnings: source.getWarnings(),
+        metadata: source.getRuntimeMetadata(),
+        lastLoadedAt: Date.now()
+      });
+      this.updateSourceStatus(sourceId, status);
       return {
+        sourceId,
         success: false,
         tokens: [],
         source: source.type,
-        error: String(error)
+        error: diagnostic.message,
+        status
       };
     }
   }
@@ -182,14 +289,20 @@ export class SourceManager implements vscode.Disposable {
   /**
    * 重新加载所有数据源
    */
-  async reload(): Promise<void> {
+  async reload(): Promise<LoadResult[]> {
     console.log('[SourceManager] Reloading all sources...');
 
     // 清空 TokenRegistry
     this.tokenRegistry.clear();
 
     // 重新加载
-    await this.loadAllSources();
+    return await this.loadAllSources();
+  }
+
+  getSourceStatuses(): SourceRuntimeStatus[] {
+    return Array.from(this.sourceStatuses.values()).sort((left, right) =>
+      left.sourceId.localeCompare(right.sourceId)
+    );
   }
 
   /**
@@ -201,13 +314,21 @@ export class SourceManager implements vscode.Disposable {
     description: string;
     enabled: boolean;
     priority: number;
+    health?: SourceHealth;
+    tokenCount?: number;
+    loadTime?: number;
+    errorMessage?: string;
   }> {
     return Array.from(this.sources.entries()).map(([id, source]) => ({
       id,
       type: source.type,
       description: source.getDescription(),
       enabled: source.config.enabled,
-      priority: source.config.priority
+      priority: source.config.priority,
+      health: this.sourceStatuses.get(id)?.health,
+      tokenCount: this.sourceStatuses.get(id)?.tokenCount,
+      loadTime: this.sourceStatuses.get(id)?.loadTime,
+      errorMessage: this.sourceStatuses.get(id)?.errorMessage
     }));
   }
 
@@ -217,6 +338,7 @@ export class SourceManager implements vscode.Disposable {
       source.dispose();
     }
     this.sources.clear();
+    this.sourceStatuses.clear();
 
     // 清理订阅
     this.disposables.forEach((d) => d.dispose());
@@ -369,6 +491,7 @@ export class SourceManager implements vscode.Disposable {
             source.dispose();
           }
           this.sources.clear();
+          this.sourceStatuses.clear();
           this.tokenRegistry.clear();
 
           // 重新加载
@@ -376,5 +499,62 @@ export class SourceManager implements vscode.Disposable {
         }
       })
     );
+  }
+
+  private updateSourceStatus(
+    sourceId: string,
+    status: SourceRuntimeStatus
+  ): void {
+    this.sourceStatuses.set(sourceId, status);
+  }
+
+  private createStatus(
+    sourceId: string,
+    source: ITokenSource,
+    health: SourceHealth,
+    options: {
+      error?: SourceDiagnostic;
+      warnings?: SourceDiagnostic[];
+      metadata?: Record<string, unknown>;
+      tokenCount?: number;
+      loadTime?: number;
+      lastLoadedAt?: number;
+    } = {}
+  ): SourceRuntimeStatus {
+    return {
+      sourceId,
+      sourceType: source.type,
+      enabled: source.config.enabled,
+      health,
+      description: source.getDescription(),
+      lastLoadedAt: options.lastLoadedAt,
+      tokenCount: options.tokenCount,
+      loadTime: options.loadTime,
+      errorCode: options.error?.code,
+      errorMessage: options.error?.message,
+      warnings: options.warnings,
+      metadata: options.metadata
+        ? {
+            ...this.getDefaultMetadata(source),
+            ...options.metadata
+          }
+        : this.getDefaultMetadata(source)
+    };
+  }
+
+  private getDefaultMetadata(source: ITokenSource): Record<string, unknown> {
+    return {
+      priority: source.config.priority,
+      filePath: source.config.filePath,
+      themeName: source.config.themeName,
+      baseTheme: source.config.baseTheme,
+      exportName: source.config.exportName
+    };
+  }
+
+  private getHealthFromWarnings(
+    warnings: SourceDiagnostic[] | undefined
+  ): SourceHealth {
+    return warnings && warnings.length > 0 ? 'warning' : 'ok';
   }
 }

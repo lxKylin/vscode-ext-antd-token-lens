@@ -402,6 +402,30 @@ const App = () => {
 
 `antdTheme` 支持三种输入来源，按优先级解析：`themeConfig` > `designToken` > `filePath`。
 
+如果同时配置了多个输入字段，插件会保持上述优先级不变：高优先级字段生效，低优先级字段会被忽略，并在数据源状态中显示 warning。
+
+#### 查看数据源状态
+
+执行命令 `Ant Design Token Lens: 查看 Token 数据源`（命令 ID：`antdToken.showSources`）后，可以直接查看每个数据源最近一次的运行状态。对于 `antdTheme`，详情中会额外展示：
+
+- 数据源 ID、source type、themeName、baseTheme
+- 实际采用的配置入口：`themeConfig`、`designToken` 或 `filePath`
+- 主题文件路径或 inline 标记
+- 解析到的 `antd` 版本、包路径、解析起点
+- 最近一次加载是否成功、token 数量、耗时
+- 最近一次错误码、错误摘要与 warning
+
+执行 `Ant Design Token Lens: 重新加载 Token 数据源`（命令 ID：`antdToken.reloadSources`）时，如果存在失败数据源，插件会给出成功/警告/失败数量摘要，并提示你进一步查看数据源状态。
+
+#### 常见失败场景
+
+- 未安装 `antd`：插件只会解析项目本地安装的 `antd`，不会静默回退到扩展内置版本。
+- 文件路径错误：`filePath` 不存在或不可访问时，状态面板会明确提示路径问题。
+- 导出名不匹配：`exportName` 找不到时，会标记为导出错误，而不是简单显示“没有 token”。
+- 导出为函数：主题文件仍然只支持纯对象导出，函数导出会被拒绝。
+- 复杂运行时依赖无法解析：包含变量引用、环境变量、函数调用、副作用逻辑的主题文件不会被执行。
+- 算法标记错误：`algorithm` 仅支持 `default`、`dark`、`compact`，未知字符串会单独标记为算法错误。
+
 当前阶段限制：
 
 - 只支持解析项目本地安装的 `antd`，不会回退到扩展内置版本。

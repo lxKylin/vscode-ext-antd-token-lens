@@ -9,6 +9,10 @@ import {
   ThemeConfigLoader,
   ThemeConfigLoadResult
 } from '@/tokenManager/resolvers/themeConfigLoader';
+import {
+  SourceErrorCode,
+  TokenSourceError
+} from '@/tokenManager/sourceDiagnostics';
 import { SourceType } from '@/tokenManager/sourceTypes';
 
 suite('AntdThemeTokenSource Test Suite', () => {
@@ -20,7 +24,10 @@ suite('AntdThemeTokenSource Test Suite', () => {
             token: {
               colorPrimary: '#13c2c2'
             }
-          }
+          },
+          inputKind: 'inlineDesignToken',
+          entryType: 'designToken',
+          warnings: []
         };
       }
     }
@@ -30,6 +37,9 @@ suite('AntdThemeTokenSource Test Suite', () => {
         return {
           packagePath: '/tmp/node_modules/antd',
           version: '5.0.0-test',
+          resolvedFrom: '/tmp',
+          attemptedStartDirs: ['/tmp'],
+          allowWorkspaceFallback: false,
           getDesignToken: (themeConfig) => ({
             colorPrimary: String(
               (themeConfig?.token as Record<string, unknown>)?.colorPrimary
@@ -63,6 +73,10 @@ suite('AntdThemeTokenSource Test Suite', () => {
     assert.strictEqual(tokens[0].theme, 'light');
     assert.strictEqual(tokens[0].sourceType, SourceType.ANTD_THEME);
     assert.ok(tokens.some((token) => token.name === '--ant-color-primary'));
+    assert.strictEqual(source.getLastError(), undefined);
+    assert.strictEqual(source.getWarnings().length, 0);
+    assert.strictEqual(source.getRuntimeMetadata()?.antdVersion, '5.0.0-test');
+    assert.strictEqual(source.getRuntimeMetadata()?.entryType, 'designToken');
   });
 
   test('validate fails when no input is provided', async () => {
@@ -73,6 +87,68 @@ suite('AntdThemeTokenSource Test Suite', () => {
     });
 
     assert.strictEqual(await source.validate(), false);
+    assert.strictEqual(
+      source.getLastError()?.code,
+      SourceErrorCode.CONFIG_MISSING_INPUT
+    );
+  });
+
+  test('keeps warning when watch is enabled without filePath', async () => {
+    const source = new AntdThemeTokenSource({
+      type: SourceType.ANTD_THEME,
+      enabled: true,
+      priority: 5,
+      watch: true,
+      designToken: {
+        colorPrimary: '#13c2c2'
+      }
+    });
+
+    const validation = await source.validateDetailed();
+
+    assert.strictEqual(validation.valid, true);
+    assert.strictEqual(source.getWarnings().length, 1);
+    assert.strictEqual(
+      source.getWarnings()[0].code,
+      SourceErrorCode.CONFIG_WATCH_REQUIRES_FILEPATH
+    );
+  });
+
+  test('exposes structured error after load failure', async () => {
+    class FailingThemeConfigLoader extends ThemeConfigLoader {
+      override async load(): Promise<ThemeConfigLoadResult> {
+        throw new TokenSourceError({
+          code: SourceErrorCode.EXPORT_NOT_FOUND,
+          message: '主题文件中未找到导出 themeConfig'
+        });
+      }
+    }
+
+    const source = new AntdThemeTokenSource(
+      {
+        type: SourceType.ANTD_THEME,
+        enabled: true,
+        priority: 5,
+        filePath: '/tmp/theme.ts'
+      },
+      {
+        themeConfigLoader: new FailingThemeConfigLoader()
+      }
+    );
+
+    await assert.rejects(
+      () => source.load(),
+      (error: unknown) => {
+        assert.ok(error instanceof TokenSourceError);
+        assert.strictEqual(error.code, SourceErrorCode.EXPORT_NOT_FOUND);
+        return true;
+      }
+    );
+
+    assert.strictEqual(
+      source.getLastError()?.code,
+      SourceErrorCode.EXPORT_NOT_FOUND
+    );
   });
 
   test('emits change event when watched file changes', () => {

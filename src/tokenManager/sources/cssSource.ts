@@ -16,7 +16,7 @@ export class CSSTokenSource extends BaseTokenSource {
   public readonly onDidChange = this.onDidChangeEmitter.event;
 
   constructor(config: SourceConfig) {
-    super(SourceType.CSS, config);
+    super(config.type, config);
 
     if (config.watch && config.filePath) {
       this.setupFileWatcher(config.filePath);
