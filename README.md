@@ -290,6 +290,14 @@ const App = () => {
       "enabled": true,
       "priority": 10,
       "watch": true
+    },
+    {
+      "type": "antdTheme",
+      "id": "brand-light",
+      "baseTheme": "light",
+      "designToken": {
+        "colorPrimary": "#13c2c2"
+      }
     }
   ],
   "antdToken.enableAutoScan": true,
@@ -377,13 +385,29 @@ const App = () => {
 
 `antdToken.sources` 中单个数据源对象支持以下字段：
 
-| 字段       | 类型      | 默认值         | 说明                                   |
-| ---------- | --------- | -------------- | -------------------------------------- |
-| `type`     | `string`  | 无             | 数据源类型，可选 `css`、`less`、`scss` |
-| `filePath` | `string`  | 无             | 文件路径，相对于工作区根目录           |
-| `enabled`  | `boolean` | `true`         | 是否启用该数据源                       |
-| `priority` | `number`  | 按顺序自动分配 | 优先级，数字越小优先级越高             |
-| `watch`    | `boolean` | `true`         | 是否监听该文件变更                     |
+| 字段                   | 类型      | 默认值         | 说明                                                  |
+| ---------------------- | --------- | -------------- | ----------------------------------------------------- |
+| `type`                 | `string`  | 无             | 数据源类型，可选 `css`、`less`、`scss`、`antdTheme`   |
+| `id`                   | `string`  | 无             | 数据源唯一标识，建议内联主题源显式设置                |
+| `filePath`             | `string`  | 无             | 文件路径，相对于工作区根目录                          |
+| `enabled`              | `boolean` | `true`         | 是否启用该数据源                                      |
+| `priority`             | `number`  | 按顺序自动分配 | 优先级，数字越小优先级越高                            |
+| `watch`                | `boolean` | `true`         | 是否监听该文件变更                                    |
+| `themeName`            | `string`  | 无             | 主题显示名，便于区分来源                              |
+| `baseTheme`            | `string`  | `light`        | 将该主题结果归并到 `light` 或 `dark`                  |
+| `exportName`           | `string`  | 无             | 从 JS/TS 主题文件中读取的导出名                       |
+| `designToken`          | `object`  | 无             | 内联 Design Token，会自动包装为 `themeConfig.token`   |
+| `themeConfig`          | `object`  | 无             | 内联 ThemeConfig，会直接传给 `theme.getDesignToken()` |
+| `resolveFromWorkspace` | `boolean` | `true`         | 允许从工作区根目录继续解析本地 `antd`                 |
+
+`antdTheme` 支持三种输入来源，按优先级解析：`themeConfig` > `designToken` > `filePath`。
+
+当前阶段限制：
+
+- 只支持解析项目本地安装的 `antd`，不会回退到扩展内置版本。
+- `filePath` 仅支持 `.json`、`.js`、`.cjs`、`.mjs`、`.ts`，并且只支持“导出纯对象”的文件。
+- 不支持函数导出、依赖复杂运行时、异步逻辑、环境变量或局部嵌套 `ConfigProvider` 推导。
+- 多命名主题展示仍通过 `baseTheme` 归并到 `light` / `dark`，完整命名主题模型会在后续阶段增强。
 
 ### 推荐配置示例
 
@@ -424,6 +448,62 @@ const App = () => {
     }
   ],
   "antdToken.enableAutoScan": true
+}
+```
+
+#### 4. 最小 designToken 主题源
+
+```json
+{
+  "antdToken.sources": [
+    {
+      "type": "antdTheme",
+      "id": "brand-light",
+      "baseTheme": "light",
+      "designToken": {
+        "colorPrimary": "#13c2c2"
+      }
+    }
+  ]
+}
+```
+
+#### 5. 完整 themeConfig 主题源
+
+```json
+{
+  "antdToken.sources": [
+    {
+      "type": "antdTheme",
+      "id": "brand-dark",
+      "themeName": "brand-dark",
+      "baseTheme": "dark",
+      "priority": 5,
+      "themeConfig": {
+        "token": {
+          "colorPrimary": "#177ddc"
+        },
+        "algorithm": ["dark", "compact"]
+      }
+    }
+  ]
+}
+```
+
+#### 6. 使用 filePath 加载主题文件
+
+```json
+{
+  "antdToken.sources": [
+    {
+      "type": "antdTheme",
+      "id": "brand-light-file",
+      "filePath": "src/theme/brandLight.ts",
+      "exportName": "themeConfig",
+      "baseTheme": "light",
+      "watch": true
+    }
+  ]
 }
 ```
 

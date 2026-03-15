@@ -17,9 +17,15 @@ export class AntdTokenHoverProvider implements vscode.HoverProvider {
   constructor(
     private readonly tokenRegistry: TokenRegistry,
     private readonly themeManager: ThemeManager,
-    private readonly tokenScanner: TokenScanner
+    private readonly tokenScanner: TokenScanner,
+    contentBuilder?: HoverContentBuilder
   ) {
-    this.contentBuilder = new HoverContentBuilder(tokenRegistry, themeManager);
+    this.contentBuilder =
+      contentBuilder ?? new HoverContentBuilder(tokenRegistry, themeManager);
+  }
+
+  clearCache(): void {
+    this.contentBuilder.clearCache();
   }
 
   /**

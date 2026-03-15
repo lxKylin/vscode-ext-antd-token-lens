@@ -62,7 +62,7 @@ export class HoverContentBuilder {
   /**
    * 清除缓存
    */
-  private clearCache(): void {
+  clearCache(): void {
     this.cache.clear();
     this.cacheVersion++;
   }

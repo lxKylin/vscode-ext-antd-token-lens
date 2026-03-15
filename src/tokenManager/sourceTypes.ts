@@ -11,8 +11,11 @@ export enum SourceType {
   BUILTIN = 'builtin', // 内置 Ant Design Token
   CSS = 'css', // CSS 文件
   LESS = 'less', // Less 文件
-  SCSS = 'scss' // Scss 文件
+  SCSS = 'scss', // Scss 文件
+  ANTD_THEME = 'antdTheme' // 基于 getDesignToken 的主题配置
 }
+
+export type SourceBaseTheme = 'light' | 'dark';
 
 /**
  * Token 信息扩展（增加数据源相关字段）
@@ -31,8 +34,28 @@ export interface SourceConfig {
   type: SourceType;
   enabled: boolean;
   priority: number; // 优先级：数字越小越优先
+  id?: string; // 显式数据源 ID
   filePath?: string; // 文件路径（针对文件类型数据源）
   watch?: boolean; // 是否监听文件变更
+  themeName?: string;
+  baseTheme?: SourceBaseTheme;
+  exportName?: string;
+  designToken?: Record<string, unknown>;
+  themeConfig?: Record<string, unknown>;
+  resolveFromWorkspace?: boolean;
+}
+
+/**
+ * Ant Design Theme 数据源配置
+ */
+export interface AntdThemeSourceConfig extends SourceConfig {
+  type: SourceType.ANTD_THEME;
+  themeName?: string;
+  baseTheme?: SourceBaseTheme;
+  exportName?: string;
+  designToken?: Record<string, unknown>;
+  themeConfig?: Record<string, unknown>;
+  resolveFromWorkspace?: boolean;
 }
 
 /**

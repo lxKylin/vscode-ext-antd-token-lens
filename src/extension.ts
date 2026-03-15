@@ -14,6 +14,8 @@ import { ColorDecorator } from './providers/colorDecorator';
 import { DocumentDecorationManager } from './providers/documentDecorationManager';
 import { ValueDecorator } from './providers/valueDecorator';
 import { AntdTokenHoverProvider } from './providers/hoverProvider';
+
+// 创建 HoverContentBuilder（供 HoverProvider 和 CompletionProvider 复用）
 import { AntdTokenCompletionProvider } from './providers/completionProvider';
 import { HoverContentBuilder } from './providers/hoverContentBuilder';
 import { CompletionIcons } from './utils/completionIcons';
@@ -68,6 +70,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // 创建装饰器
     const scanner = new TokenScanner();
+
+    // 创建 HoverContentBuilder（供 HoverProvider 和 CompletionProvider 复用）
+    const hoverContentBuilder = new HoverContentBuilder(
+      tokenRegistry,
+      themeManager
+    );
+
     if (!isTestMode) {
       const colorDecorator = new ColorDecorator(tokenRegistry, themeManager);
       const valueDecorator = new ValueDecorator(tokenRegistry, themeManager);
@@ -94,6 +103,10 @@ export async function activate(context: vscode.ExtensionContext) {
             // 刷新所有编辑器的装饰
             decorationManager?.refresh();
 
+            // 清空 Hover / 补全缓存，避免 source 更新后仍看到旧值
+            hoverProvider.clearCache();
+            hoverContentBuilder.clearCache();
+
             // 清空补全缓存
             completionProvider?.clearCache();
           })
@@ -110,7 +123,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const hoverProvider = new AntdTokenHoverProvider(
       tokenRegistry,
       themeManager,
-      scanner
+      scanner,
+      hoverContentBuilder
     );
 
     // 注册 HoverProvider 到所有支持的语言
@@ -141,12 +155,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // 初始化补全图标管理器
     CompletionIcons.initialize(context);
-
-    // 创建 HoverContentBuilder（供 CompletionProvider 复用）
-    const hoverContentBuilder = new HoverContentBuilder(
-      tokenRegistry,
-      themeManager
-    );
 
     // 创建 CompletionProvider
     completionProvider = new AntdTokenCompletionProvider(

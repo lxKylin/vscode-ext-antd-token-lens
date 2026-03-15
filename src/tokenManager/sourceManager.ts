@@ -4,16 +4,20 @@
  */
 
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { TokenRegistry } from './tokenRegistry';
 import {
   ITokenSource,
   SourceConfig,
   SourceType,
   ExtendedTokenInfo,
-  LoadResult
+  LoadResult,
+  AntdThemeSourceConfig
 } from './sourceTypes';
 import { BuiltinTokenSource } from './sources/builtinSource';
 import { CSSTokenSource } from './sources/cssSource';
+import { AntdThemeTokenSource } from './sources/antdThemeSource';
 import { Config } from '../utils/config';
 
 export class SourceManager implements vscode.Disposable {
@@ -22,6 +26,7 @@ export class SourceManager implements vscode.Disposable {
   private readonly onDidSourcesChangeEmitter = new vscode.EventEmitter<void>();
   public readonly onDidSourcesChange = this.onDidSourcesChangeEmitter.event;
   private readonly assetsPath: string;
+  private isWatchingConfigChanges = false;
 
   constructor(
     private readonly tokenRegistry: TokenRegistry,
@@ -231,6 +236,9 @@ export class SourceManager implements vscode.Disposable {
       case SourceType.SCSS:
         return new CSSTokenSource(config);
 
+      case SourceType.ANTD_THEME:
+        return new AntdThemeTokenSource(config as AntdThemeSourceConfig);
+
       default:
         console.warn(`[SourceManager] Unsupported source type: ${config.type}`);
         return null;
@@ -244,6 +252,11 @@ export class SourceManager implements vscode.Disposable {
     if (config.type === SourceType.BUILTIN) {
       return 'builtin';
     }
+
+    if (config.id) {
+      return `${config.type}:${config.id}`;
+    }
+
     return `${config.type}:${config.filePath}`;
   }
 
@@ -267,11 +280,8 @@ export class SourceManager implements vscode.Disposable {
   private async handleSourceChange(sourceId: string): Promise<void> {
     console.log(`[SourceManager] Source changed: ${sourceId}`);
 
-    // 重新加载该数据源
-    await this.loadSource(sourceId);
-
-    // 触发更新事件
-    this.onDidSourcesChangeEmitter.fire();
+    // 当前 TokenRegistry 不按来源增量清理，文件变更时执行全量重载以避免旧值残留
+    await this.reload();
   }
 
   /**
@@ -291,33 +301,75 @@ export class SourceManager implements vscode.Disposable {
     // 从用户配置加载自定义数据源
     const customSources = Config.getCustomTokenSources();
     for (const [index, source] of customSources.entries()) {
+      const type = source.type as SourceType;
+      const resolvedFilePath = this.resolveConfigFilePath(source.filePath);
+
       configs.push({
-        type: source.type as SourceType,
+        type,
         enabled: source.enabled !== false,
         priority: source.priority ?? 10 + index,
-        filePath: source.filePath,
-        watch: source.watch !== false
+        id:
+          source.id ??
+          (type === SourceType.ANTD_THEME && !resolvedFilePath
+            ? `antdTheme-${index}`
+            : undefined),
+        filePath: resolvedFilePath,
+        watch: source.watch !== false,
+        themeName: source.themeName,
+        baseTheme: source.baseTheme,
+        exportName: source.exportName,
+        designToken: source.designToken,
+        themeConfig: source.themeConfig,
+        resolveFromWorkspace: source.resolveFromWorkspace !== false
       });
     }
 
     return configs;
   }
 
+  private resolveConfigFilePath(filePath?: string): string | undefined {
+    if (!filePath) {
+      return undefined;
+    }
+
+    if (path.isAbsolute(filePath)) {
+      return path.normalize(filePath);
+    }
+
+    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+    for (const folder of workspaceFolders) {
+      const resolvedPath = path.resolve(folder.uri.fsPath, filePath);
+      if (fs.existsSync(resolvedPath)) {
+        return resolvedPath;
+      }
+    }
+
+    const fallbackRoot = workspaceFolders[0]?.uri.fsPath;
+    return fallbackRoot
+      ? path.resolve(fallbackRoot, filePath)
+      : path.resolve(filePath);
+  }
+
   /**
    * 监听配置变化
    */
   private watchConfigChanges(): void {
+    if (this.isWatchingConfigChanges) {
+      return;
+    }
+
+    this.isWatchingConfigChanges = true;
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration('antdToken.sources')) {
           console.log('[SourceManager] Configuration changed, reloading...');
 
-          // 重新初始化
-          // 清理现有数据源
+          // 重新初始化前先清理现有数据源和旧 Token，避免同优先级配置更新时旧值残留
           for (const source of this.sources.values()) {
             source.dispose();
           }
           this.sources.clear();
+          this.tokenRegistry.clear();
 
           // 重新加载
           await this.initialize();

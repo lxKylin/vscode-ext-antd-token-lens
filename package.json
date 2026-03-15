@@ -303,13 +303,47 @@
                 "enum": [
                   "css",
                   "less",
-                  "scss"
+                  "scss",
+                  "antdTheme"
                 ],
                 "description": "数据源类型"
+              },
+              "id": {
+                "type": "string",
+                "description": "数据源唯一标识，建议为内联主题源显式配置"
               },
               "filePath": {
                 "type": "string",
                 "description": "文件路径（相对于工作区根目录）"
+              },
+              "themeName": {
+                "type": "string",
+                "description": "主题名称，仅用于展示与区分来源"
+              },
+              "baseTheme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ],
+                "description": "将命名主题归并到 light 或 dark 视图"
+              },
+              "exportName": {
+                "type": "string",
+                "description": "从 JS/TS 主题文件中读取的导出名"
+              },
+              "designToken": {
+                "type": "object",
+                "description": "内联 designToken 对象，会自动包装为 { token: designToken }"
+              },
+              "themeConfig": {
+                "type": "object",
+                "description": "内联 ThemeConfig 对象，将直接传给 theme.getDesignToken()"
+              },
+              "resolveFromWorkspace": {
+                "type": "boolean",
+                "default": true,
+                "description": "是否允许从工作区根目录继续解析项目本地安装的 antd"
               },
               "enabled": {
                 "type": "boolean",
@@ -327,8 +361,7 @@
               }
             },
             "required": [
-              "type",
-              "filePath"
+              "type"
             ]
           },
           "examples": [
@@ -337,6 +370,14 @@
                 "type": "css",
                 "filePath": "./src/styles/tokens.css",
                 "priority": 10
+              },
+              {
+                "type": "antdTheme",
+                "id": "brand-light",
+                "baseTheme": "light",
+                "designToken": {
+                  "colorPrimary": "#13c2c2"
+                }
               }
             ]
           ]
